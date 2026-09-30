@@ -12,7 +12,7 @@ class GoldApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'حسابات الذهب',
+      title: const Text('حسابات الذهب v3'),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: kGold),
