@@ -138,6 +138,8 @@ class GoldTable extends StatelessWidget {
                     ],
                   ),
                 ),
+              // مساحة تحت صف الإجمالي حتى لا يغطيه زر "إضافة"
+              if (footer != null) const SizedBox(height: 76),
             ],
           ),
         ),

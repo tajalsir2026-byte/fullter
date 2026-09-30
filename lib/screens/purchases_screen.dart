@@ -273,7 +273,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           GoldCell(fmtNum(p.amount)),
                           GoldCell(
                             p.pendingAmount == 0
-                                ? '✓'
+                                ? 'مسدّد'
                                 : fmtNum(p.pendingAmount),
                             color: p.pendingAmount > 0 ? kRed : kGreen,
                             weight: FontWeight.bold,
