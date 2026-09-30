@@ -135,7 +135,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
             children: [
               const Icon(Icons.lock, size: 80, color: kGold),
               const SizedBox(height: 16),
-              Text(isSetup ? 'إنشاء كلمة سر' : 'أدخل كلمة السر',
+             Text(isSetup ? 'إنشاء كلمة سر — v3' : 'أدخل كلمة السر — v3', 
                   style: const TextStyle(
                       fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
