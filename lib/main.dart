@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-void main() {
-  runApp(const GoldApp());
-}
+void main() => runApp(const GoldApp());
 
 class GoldApp extends StatelessWidget {
   const GoldApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,52 +21,59 @@ class GoldApp extends StatelessWidget {
   }
 }
 
-class Transaction {
+class Deal {
   final String id;
-  final String type; // buy_gold, sell_gold, expense, income
-  final double amount;
-  final double weight;
-  final String description;
   final DateTime date;
+  final int grams, habba, juz, purity;
+  final double buyAmount, sellAmount;
 
-  Transaction({
+  Deal({
     required this.id,
-    required this.type,
-    required this.amount,
-    this.weight = 0,
-    required this.description,
     required this.date,
+    required this.grams,
+    required this.habba,
+    required this.juz,
+    required this.purity,
+    required this.buyAmount,
+    required this.sellAmount,
   });
+
+  double get weight => grams + habba / 10 + juz / 100;
+  double get profit => sellAmount - buyAmount;
+  String get weightStr => '$grams.$habba.$juz';
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'type': type,
-    'amount': amount,
-    'weight': weight,
-    'description': description,
     'date': date.toIso8601String(),
+    'grams': grams,
+    'habba': habba,
+    'juz': juz,
+    'purity': purity,
+    'buyAmount': buyAmount,
+    'sellAmount': sellAmount,
   };
 
-  factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
-    id: json['id'] as String,
-    type: json['type'] as String,
-    amount: (json['amount'] as num).toDouble(),
-    weight: (json['weight'] as num?)?.toDouble() ?? 0,
-    description: json['description'] as String,
-    date: DateTime.parse(json['date'] as String),
+  factory Deal.fromJson(Map<String, dynamic> j) => Deal(
+    id: j['id'] as String,
+    date: DateTime.parse(j['date'] as String),
+    grams: j['grams'] as int,
+    habba: j['habba'] as int,
+    juz: j['juz'] as int,
+    purity: j['purity'] as int,
+    buyAmount: (j['buyAmount'] as num).toDouble(),
+    sellAmount: (j['sellAmount'] as num).toDouble(),
   );
 }
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  static const String _key = 'gold_transactions_v1';
-  List<Transaction> transactions = [];
+  static const _key = 'gold_deals_v1';
+  List<Deal> deals = [];
   bool loading = true;
 
   @override
@@ -81,8 +86,8 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString(_key);
     if (data != null) {
-      final List list = jsonDecode(data);
-      transactions = list.map((e) => Transaction.fromJson(e)).toList();
+      final list = jsonDecode(data) as List;
+      deals = list.map((e) => Deal.fromJson(e)).toList();
     }
     setState(() => loading = false);
   }
@@ -90,64 +95,64 @@ class _HomePageState extends State<HomePage> {
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        _key, jsonEncode(transactions.map((e) => e.toJson()).toList()));
+        _key, jsonEncode(deals.map((e) => e.toJson()).toList()));
   }
 
-  double _sumOf(String type) => transactions
-      .where((t) => t.type == type)
-      .fold(0.0, (sum, t) => sum + t.amount);
-
-  double _weightOf(String type) => transactions
-      .where((t) => t.type == type)
-      .fold(0.0, (sum, t) => sum + t.weight);
-
-  double get totalBuyGold => _sumOf('buy_gold');
-  double get totalSellGold => _sumOf('sell_gold');
-  double get totalExpenses => _sumOf('expense');
-  double get totalOtherIncome => _sumOf('income');
-
-  double get cashBalance =>
-      (totalSellGold + totalOtherIncome) - (totalBuyGold + totalExpenses);
-
-  double get goldBalance => _weightOf('buy_gold') - _weightOf('sell_gold');
-  double get goldProfit => totalSellGold - totalBuyGold;
-
-  Future<void> _addTransaction() async {
-    final result = await Navigator.push<Transaction>(
+  Future<void> _addDeal() async {
+    final result = await Navigator.push<Deal>(
       context,
-      MaterialPageRoute(builder: (_) => const AddTransactionPage()),
+      MaterialPageRoute(builder: (_) => const AddDealPage()),
     );
     if (result != null) {
-      setState(() => transactions.insert(0, result));
+      setState(() => deals.insert(0, result));
       await _save();
     }
   }
 
-  Future<void> _deleteTransaction(int index) async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _deleteDeal(int i) async {
+    final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف العملية'),
-        content: const Text('هل تريد حذف هذه العملية؟'),
+        title: const Text('حذف السطر'),
+        content: const Text('هل تريد حذف هذا السطر؟'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('إلغاء')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('حذف', style: TextStyle(color: Colors.red))),
+              child: const Text('حذف',
+                  style: TextStyle(color: Colors.red))),
         ],
       ),
     );
-    if (confirmed == true) {
-      setState(() => transactions.removeAt(index));
+    if (ok == true) {
+      setState(() => deals.removeAt(i));
       await _save();
     }
   }
 
   String _fmt(double n) {
-    if (n == n.roundToDouble()) return n.toInt().toString();
-    return n.toStringAsFixed(2);
+    final s = n.abs().toStringAsFixed(0);
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return (n < 0 ? '-' : '') + buf.toString();
+  }
+
+  double get totalWeight => deals.fold(0.0, (s, d) => s + d.weight);
+  double get totalBuy => deals.fold(0.0, (s, d) => s + d.buyAmount);
+  double get totalSell => deals.fold(0.0, (s, d) => s + d.sellAmount);
+  double get totalProfit => deals.fold(0.0, (s, d) => s + d.profit);
+
+  String get totalWeightStr {
+    final g = totalWeight.floor();
+    final rem = totalWeight - g;
+    final h = (rem * 10).floor();
+    final j = ((rem * 100) - (h * 10)).round();
+    return '$g.$h.$j';
   }
 
   @override
@@ -155,42 +160,46 @@ class _HomePageState extends State<HomePage> {
     if (loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('حسابات محل الذهب'),
+        title: const Text('حسابات الذهب'),
         centerTitle: true,
         backgroundColor: const Color(0xFFB8860B),
         foregroundColor: Colors.white,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Column(
-          children: [
-            _buildSummary(),
-            const Divider(height: 1),
-            Expanded(
-              child: transactions.isEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Text(
-                          'لا توجد عمليات بعد\nاضغط زر "عملية جديدة" للإضافة\n\nلحذف عملية: اضغط عليها مطولاً',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 15, color: Colors.grey),
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: transactions.length,
-                      itemBuilder: (ctx, i) => _buildTile(transactions[i], i),
-                    ),
-            ),
-          ],
-        ),
-      ),
+        child: deals.isEmpty
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    'لا توجد عمليات بعد\nاضغط "عملية جديدة" للإضافة\n\nلحذف سطر: اضغط عليه مطولًا',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, color: Colors.grey),
+                  ),
+                ),
+              )
+            : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _headerRow(),
+                      ...List.generate(deals.length, (i) {
+                        return InkWell(
+                          onLongPress: () => _deleteDeal(i),
+                          child: _dealRow(deals[i], i),
+                        );
+                      }),
+                      _totalsRow(),
+                    ],
+                  ),
+                ),
+              ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addTransaction,
+        onPressed: _addDeal,
         icon: const Icon(Icons.add),
         label: const Text('عملية جديدة'),
         backgroundColor: const Color(0xFFB8860B),
@@ -199,212 +208,178 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSummary() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      color: const Color(0xFFFFF8E1),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: _sumCard('المشتريات', totalBuyGold, Colors.orange)),
-              const SizedBox(width: 8),
-              Expanded(child: _sumCard('المبيعات', totalSellGold, Colors.green)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _sumCard('المصاريف', totalExpenses, Colors.red)),
-              const SizedBox(width: 8),
-              Expanded(child: _sumCard('دخل آخر', totalOtherIncome, Colors.blue)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: cashBalance >= 0 ? Colors.green.shade50 : Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: cashBalance >= 0 ? Colors.green : Colors.red,
-                width: 2,
-              ),
-            ),
-            child: Column(
-              children: [
-                const Text('الرصيد النقدي',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(
-                  '${_fmt(cashBalance)} ج.س',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: cashBalance >= 0
-                        ? Colors.green.shade800
-                        : Colors.red.shade800,
-                  ),
-                ),
-                const Divider(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Column(
-                      children: [
-                        const Text('رصيد الذهب', style: TextStyle(fontSize: 12)),
-                        Text('${_fmt(goldBalance)} جم',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        const Text('ربح الذهب', style: TextStyle(fontSize: 12)),
-                        Text('${_fmt(goldProfit)} ج.س',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  static const double wDate = 95;
+  static const double wWeight = 110;
+  static const double wPurity = 70;
+  static const double wBuy = 120;
+  static const double wSell = 120;
+  static const double wProfit = 120;
 
-  Widget _sumCard(String label, double value, Color color) {
+  Widget _cell(String text, double width,
+      {Color color = Colors.black87,
+      FontWeight weight = FontWeight.normal,
+      Color? bg}) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12, color: color, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 2),
-          Text(_fmt(value),
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTile(Transaction t, int index) {
-    final info = _typeInfo(t.type);
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: info.color.withOpacity(0.15),
-        child: Icon(info.icon, color: info.color),
-      ),
-      title: Text(info.label,
-          style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (t.description.isNotEmpty) Text(t.description),
-          Text(
-            '${t.date.day}/${t.date.month}/${t.date.year}'
-            + (t.weight > 0 ? '  •  ${_fmt(t.weight)} جم' : ''),
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ],
-      ),
-      trailing: Text(
-        '${_fmt(t.amount)} ج.س',
+      width: width,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+      color: bg,
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
         style: TextStyle(
-            fontWeight: FontWeight.bold, fontSize: 15, color: info.color),
+          color: color,
+          fontWeight: weight,
+          fontSize: 13,
+        ),
       ),
-      onLongPress: () => _deleteTransaction(index),
     );
   }
 
-  _TypeInfo _typeInfo(String type) {
-    switch (type) {
-      case 'buy_gold':
-        return _TypeInfo('شراء ذهب', Icons.shopping_cart, Colors.orange);
-      case 'sell_gold':
-        return _TypeInfo('بيع ذهب', Icons.sell, Colors.green);
-      case 'expense':
-        return _TypeInfo('مصروف', Icons.money_off, Colors.red);
-      case 'income':
-        return _TypeInfo('دخل آخر', Icons.attach_money, Colors.blue);
-      default:
-        return _TypeInfo('غير معروف', Icons.help, Colors.grey);
-    }
+  Widget _headerRow() {
+    return Container(
+      color: const Color(0xFFB8860B),
+      child: Row(
+        children: [
+          _cell('تاريخ', wDate,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('وزن', wWeight, color: Colors.white, weight: FontWeight.bold),
+          _cell('عيار', wPurity, color: Colors.white, weight: FontWeight.bold),
+          _cell('مبلغ الشراء', wBuy,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('مبلغ البيع', wSell,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('الأرباح', wProfit,
+              color: Colors.white, weight: FontWeight.bold),
+        ],
+      ),
+    );
+  }
+
+  Widget _dealRow(Deal d, int i) {
+    final bg = i.isEven ? Colors.white : const Color(0xFFFFF8E1);
+    return Row(
+      children: [
+        _cell('${d.date.day}/${d.date.month}/${d.date.year}', wDate, bg: bg),
+        _cell(d.weightStr, wWeight, bg: bg),
+        _cell('${d.purity}', wPurity, bg: bg),
+        _cell(_fmt(d.buyAmount), wBuy, bg: bg),
+        _cell(_fmt(d.sellAmount), wSell, bg: bg),
+        _cell(
+          _fmt(d.profit),
+          wProfit,
+          bg: bg,
+          color: d.profit >= 0 ? Colors.green.shade800 : Colors.red.shade800,
+          weight: FontWeight.bold,
+        ),
+      ],
+    );
+  }
+
+  Widget _totalsRow() {
+    return Container(
+      color: const Color(0xFF4A3800),
+      child: Row(
+        children: [
+          _cell('الإجمالي', wDate,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell(totalWeightStr, wWeight,
+              color: Colors.amber, weight: FontWeight.bold),
+          _cell('—', wPurity, color: Colors.white, weight: FontWeight.bold),
+          _cell(_fmt(totalBuy), wBuy,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell(_fmt(totalSell), wSell,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell(
+            _fmt(totalProfit),
+            wProfit,
+            color: totalProfit >= 0 ? Colors.lightGreenAccent : Colors.redAccent,
+            weight: FontWeight.bold,
+          ),
+        ],
+      ),
+    );
   }
 }
 
-class _TypeInfo {
-  final String label;
-  final IconData icon;
-  final Color color;
-  _TypeInfo(this.label, this.icon, this.color);
-}
+// ======================= Add Page =======================
 
-// ==================== Add Transaction Page ====================
-
-class AddTransactionPage extends StatefulWidget {
-  const AddTransactionPage({super.key});
-
+class AddDealPage extends StatefulWidget {
+  const AddDealPage({super.key});
   @override
-  State<AddTransactionPage> createState() => _AddTransactionPageState();
+  State<AddDealPage> createState() => _AddDealPageState();
 }
 
-class _AddTransactionPageState extends State<AddTransactionPage> {
-  String selectedType = 'buy_gold';
-  final TextEditingController amountCtrl = TextEditingController();
-  final TextEditingController weightCtrl = TextEditingController();
-  final TextEditingController descCtrl = TextEditingController();
-  DateTime selectedDate = DateTime.now();
-
-  bool get isGold => selectedType == 'buy_gold' || selectedType == 'sell_gold';
+class _AddDealPageState extends State<AddDealPage> {
+  final gramsCtrl = TextEditingController();
+  final habbaCtrl = TextEditingController();
+  final juzCtrl = TextEditingController();
+  final purityCtrl = TextEditingController();
+  final buyCtrl = TextEditingController();
+  final sellCtrl = TextEditingController();
+  DateTime date = DateTime.now();
 
   @override
   void dispose() {
-    amountCtrl.dispose();
-    weightCtrl.dispose();
-    descCtrl.dispose();
+    gramsCtrl.dispose();
+    habbaCtrl.dispose();
+    juzCtrl.dispose();
+    purityCtrl.dispose();
+    buyCtrl.dispose();
+    sellCtrl.dispose();
     super.dispose();
   }
 
-  void _pickDate() async {
-    final picked = await showDatePicker(
+  Future<void> _pickDate() async {
+    final p = await showDatePicker(
       context: context,
-      initialDate: selectedDate,
+      initialDate: date,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => selectedDate = picked);
+    if (p != null) setState(() => date = p);
   }
 
   void _save() {
-    final amount = double.tryParse(amountCtrl.text.trim());
-    if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('الرجاء إدخال مبلغ صحيح'),
-            backgroundColor: Colors.red),
-      );
+    final g = int.tryParse(gramsCtrl.text.trim()) ?? 0;
+    final h = int.tryParse(habbaCtrl.text.trim()) ?? 0;
+    final j = int.tryParse(juzCtrl.text.trim()) ?? 0;
+    final pur = int.tryParse(purityCtrl.text.trim()) ?? 0;
+    final buy = double.tryParse(buyCtrl.text.trim()) ?? 0;
+    final sell = double.tryParse(sellCtrl.text.trim()) ?? 0;
+
+    if (g == 0 && h == 0 && j == 0) {
+      _msg('الرجاء إدخال الوزن');
       return;
     }
-    final weight = double.tryParse(weightCtrl.text.trim()) ?? 0;
-    final t = Transaction(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      type: selectedType,
-      amount: amount,
-      weight: weight,
-      description: descCtrl.text.trim(),
-      date: selectedDate,
+    if (buy == 0 && sell == 0) {
+      _msg('الرجاء إدخال مبلغ الشراء أو البيع');
+      return;
+    }
+    if (h > 9 || j > 9) {
+      _msg('الحبة والجزء يجب أن يكونا من 0 إلى 9');
+      return;
+    }
+
+    Navigator.pop(
+      context,
+      Deal(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        date: date,
+        grams: g,
+        habba: h,
+        juz: j,
+        purity: pur,
+        buyAmount: buy,
+        sellAmount: sell,
+      ),
     );
-    Navigator.pop(context, t);
+  }
+
+  void _msg(String s) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(s), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -413,7 +388,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('عملية جديدة'),
+          title: const Text('سطر جديد'),
           centerTitle: true,
           backgroundColor: const Color(0xFFB8860B),
           foregroundColor: Colors.white,
@@ -421,80 +396,55 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('نوع العملية',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _typeChip('buy_gold', 'شراء ذهب', Icons.shopping_cart, Colors.orange),
-                _typeChip('sell_gold', 'بيع ذهب', Icons.sell, Colors.green),
-                _typeChip('expense', 'مصروف', Icons.money_off, Colors.red),
-                _typeChip('income', 'دخل آخر', Icons.attach_money, Colors.blue),
-              ],
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: amountCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'المبلغ (ج.س)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.attach_money),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (isGold) ...[
-              TextField(
-                controller: weightCtrl,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'الوزن (جرام)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.scale),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            TextField(
-              controller: descCtrl,
-              decoration: const InputDecoration(
-                labelText: 'الوصف (اسم العميل / تفاصيل)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.notes),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 12),
+            _label('التاريخ'),
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'التاريخ',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                child: Text(
-                    '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
+                decoration: _dec(Icons.calendar_today),
+                child: Text('${date.day}/${date.month}/${date.year}'),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            _label('الوزن (جرام . حبة . جزء)'),
+            Row(
+              children: [
+                Expanded(
+                    child: _numField(gramsCtrl, 'جرام', Icons.scale)),
+                const SizedBox(width: 6),
+                Expanded(child: _numField(habbaCtrl, 'حبة', Icons.circle)),
+                const SizedBox(width: 6),
+                Expanded(
+                    child: _numField(juzCtrl, 'جزء', Icons.circle_outlined)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _label('العيار (مثل: 875، 916، 999)'),
+            TextField(
+              controller: purityCtrl,
+              keyboardType: TextInputType.number,
+              decoration: _dec(Icons.diamond),
+            ),
+            const SizedBox(height: 16),
+            _label('مبلغ الشراء (جنيه)'),
+            TextField(
+              controller: buyCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec(Icons.shopping_cart),
+            ),
+            const SizedBox(height: 16),
+            _label('مبلغ البيع (جنيه)'),
+            TextField(
+              controller: sellCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec(Icons.sell),
+            ),
+            const SizedBox(height: 28),
             SizedBox(
-              height: 50,
+              height: 52,
               child: ElevatedButton.icon(
                 onPressed: _save,
                 icon: const Icon(Icons.save),
-                label: const Text('حفظ العملية',
+                label: const Text('حفظ',
                     style: TextStyle(fontSize: 18)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFB8860B),
@@ -508,21 +458,34 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     );
   }
 
-  Widget _typeChip(String type, String label, IconData icon, Color color) {
-    final selected = selectedType == type;
-    return ChoiceChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: selected ? Colors.white : color),
-          const SizedBox(width: 6),
-          Text(label),
-        ],
+  Widget _label(String s) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(s,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 15)),
+      );
+
+  InputDecoration _dec(IconData icon) => InputDecoration(
+        prefixIcon: Icon(icon),
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Colors.white,
+      );
+
+  Widget _numField(TextEditingController c, String hint, IconData icon) {
+    return TextField(
+      controller: c,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      textAlign: TextAlign.center,
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 18),
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
-      selected: selected,
-      selectedColor: color,
-      labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
-      onSelected: (_) => setState(() => selectedType = type),
     );
   }
 }
