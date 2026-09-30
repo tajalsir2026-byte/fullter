@@ -135,7 +135,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
             children: [
               const Icon(Icons.lock, size: 80, color: kGold),
               const SizedBox(height: 16),
-             Text(isSetup ? 'إنشاء كلمة سر — v3' : 'أدخل كلمة السر — v3', 
+              Text(isSetup ? 'إنشاء كلمة سر — v3' : 'أدخل كلمة السر — v3',
                   style: const TextStyle(
                       fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -1066,6 +1066,8 @@ class ExpensesScreenState extends State<ExpensesScreen> {
   Widget _row(Expense e, int i) {
     final bg = i.isEven ? Colors.white : const Color(0xFFFFF8E1);
     final isGen = e.isGeneral;
+    final name = expenseNameOf(e);
+    final notes = expenseNotesOf(e);
     return Row(children: [
       _cell(dateStr(e.date), wDate, bg: bg),
       _cell(fmtNum(e.amount), wAmount, bg: bg),
@@ -1074,11 +1076,11 @@ class ExpensesScreenState extends State<ExpensesScreen> {
           bg: bg,
           color: isGen ? Colors.orange.shade800 : Colors.blue.shade800,
           weight: FontWeight.bold),
-      _cell(isGen ? '—' : e.target, wName,
+      _cell(name.isEmpty ? '—' : name, wName,
           bg: bg,
           color: isGen ? Colors.black54 : Colors.blue.shade900,
           weight: FontWeight.bold),
-      _cell(e.notes.isEmpty ? '—' : e.notes, wNotes, bg: bg),
+      _cell(notes.isEmpty ? '—' : notes, wNotes, bg: bg),
     ]);
   }
 
@@ -1814,155 +1816,7 @@ class _AddSalePageState extends State<AddSalePage> {
   }
 }
 
-// ================ Add Expense (NEW) ================
-class AddExpensePage extends StatefulWidget {
-  final Expense? existing;
-  final List<String> partners;
-  const AddExpensePage({super.key, this.existing, required this.partners});
-  @override
-  State<AddExpensePage> createState() => _AddExpensePageState();
-}
-
-class _AddExpensePageState extends State<AddExpensePage> {
-  late final TextEditingController amountCtrl;
-  late final TextEditingController categoryCtrl;
-  late final TextEditingController notesCtrl;
-  late String target;
-  late DateTime date;
-
-  static const _categories = [
-    'كهرباء', 'إيجار', 'فطور', 'غداء', 'بيت',
-    'صيانة', 'نقل', 'ضيافة', 'رواتب', 'أخرى',
-  ];
-
-  bool get isPrivate => target != kGeneral;
-
-  @override
-  void initState() {
-    super.initState();
-    final e = widget.existing;
-    amountCtrl = TextEditingController(
-        text: e == null ? '' : e.amount.toStringAsFixed(0));
-    categoryCtrl = TextEditingController(text: e?.category ?? '');
-    notesCtrl = TextEditingController(text: e?.notes ?? '');
-    target = e?.target ?? kGeneral;
-    date = e?.date ?? DateTime.now();
-  }
-
-  @override
-  void dispose() {
-    amountCtrl.dispose();
-    categoryCtrl.dispose();
-    notesCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate() async {
-    final p = await showDatePicker(
-      context: context,
-      initialDate: date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (p != null) setState(() => date = p);
-  }
-
-  Future<void> _pickCategory() async {
-    final chosen = await showModalBottomSheet<String>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('اختر الفئة',
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
-              ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: _categories
-                      .map((c) => ListTile(
-                            title: Text(c),
-                            onTap: () => Navigator.pop(ctx, c),
-                          ))
-                      .toList(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (chosen != null) {
-      setState(() => categoryCtrl.text = chosen);
-    }
-  }
-
-  void _selectGeneral() {
-    setState(() => target = kGeneral);
-  }
-
-  void _selectPrivate() {
-    if (widget.partners.isEmpty) {
-      _msg('أضف شركاء أولًا من صفحة رأس المال');
-      return;
-    }
-    setState(() => target = widget.partners.first);
-  }
-
-  void _save() {
-    final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
-    if (amt <= 0) {
-      _msg('الرجاء إدخال المبلغ');
-      return;
-    }
-    if (categoryCtrl.text.trim().isEmpty) {
-      _msg('الرجاء اختيار أو كتابة الفئة');
-      return;
-    }
-    Navigator.pop(
-      context,
-      Expense(
-        id: widget.existing?.id ??
-            DateTime.now().microsecondsSinceEpoch.toString(),
-        date: date,
-        amount: amt,
-        category: categoryCtrl.text.trim(),
-        target: target,
-        notes: notesCtrl.text.trim(),
-      ),
-    );
-  }
-
-  void _msg(String s) {
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(s), backgroundColor: Colors.red));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isEdit = widget.existing != null;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEdit ? 'تعديل مصروف' : 'مصروف جديد'),
-        centerTitle: true,
-        backgroundColor: kGold,
-        foregroundColor: Colors.white,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _label('التاريخ'),
-          InkWell(
-// ================ Add Expense (NEW) ================
+// ================ Add Expense ================
 String expenseNameOf(Expense e) {
   if (e.target != kGeneral) return e.target;
   final n = e.notes;
@@ -2167,8 +2021,54 @@ class _AddExpensePageState extends State<AddExpensePage> {
                     ? 'اضغط للاختيار أو اكتب يدويًا'
                     : categoryCtrl.text,
                 style: TextStyle(
-          // ===== نوع المصروف (جديد) =====
-          _label('نوع المصروف'),
+                    color: categoryCtrl.text.isEmpty
+                        ? Colors.grey
+                        : Colors.black87),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: categoryCtrl,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              hintText: 'أو اكتب فئة جديدة',
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.edit),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          _label('الاسم'),
+          TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(
+              hintText: 'اكتب الاسم',
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.person),
+            ),
+          ),
+          if (_partners.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: _partners
+                  .map((p) => ActionChip(
+                        label: Text(p),
+                        avatar: const Icon(Icons.person, size: 16),
+                        onPressed: () => setState(() => nameCtrl.text = p),
+                      ))
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 20),
+
+          _label('إضافة الاسم في'),
           Row(
             children: [
               Expanded(
@@ -2178,54 +2078,22 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   icon: Icons.groups,
                   color: Colors.orange,
                   selected: !isPrivate,
-                  onTap: _selectGeneral,
+                  onTap: () => setState(() => isPrivate = false),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _typeButton(
                   label: 'خاص',
-                  sublabel: 'على شريك معين',
+                  sublabel: 'على شخص معين',
                   icon: Icons.person,
                   color: Colors.blue,
                   selected: isPrivate,
-                  onTap: _selectPrivate,
+                  onTap: () => setState(() => isPrivate = true),
                 ),
               ),
             ],
           ),
-
-          // ===== إذا خاص → عرض الشركاء =====
-          if (isPrivate) ...[
-            const SizedBox(height: 16),
-            _label('اختر الشريك'),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.blue.shade200),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                children: widget.partners.map((p) {
-                  final sel = target == p;
-                  return RadioListTile<String>(
-                    value: p,
-                    groupValue: target,
-                    onChanged: (v) => setState(() => target = v!),
-                    title: Text(
-                      p,
-                      style: TextStyle(
-                        fontWeight:
-                            sel ? FontWeight.bold : FontWeight.normal,
-                        color: sel ? Colors.blue.shade800 : Colors.black87,
-                      ),
-                    ),
-                    activeColor: Colors.blue,
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
 
           const SizedBox(height: 16),
           _label('ملاحظات'),
