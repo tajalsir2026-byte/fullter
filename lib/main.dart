@@ -43,26 +43,26 @@ class Deal {
   String get weightStr => '$grams.$habba.$juz';
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'date': date.toIso8601String(),
-    'grams': grams,
-    'habba': habba,
-    'juz': juz,
-    'purity': purity,
-    'buyAmount': buyAmount,
-    'sellAmount': sellAmount,
-  };
+        'id': id,
+        'date': date.toIso8601String(),
+        'grams': grams,
+        'habba': habba,
+        'juz': juz,
+        'purity': purity,
+        'buyAmount': buyAmount,
+        'sellAmount': sellAmount,
+      };
 
   factory Deal.fromJson(Map<String, dynamic> j) => Deal(
-    id: j['id'] as String,
-    date: DateTime.parse(j['date'] as String),
-    grams: j['grams'] as int,
-    habba: j['habba'] as int,
-    juz: j['juz'] as int,
-    purity: j['purity'] as int,
-    buyAmount: (j['buyAmount'] as num).toDouble(),
-    sellAmount: (j['sellAmount'] as num).toDouble(),
-  );
+        id: j['id'] as String,
+        date: DateTime.parse(j['date'] as String),
+        grams: j['grams'] as int,
+        habba: j['habba'] as int,
+        juz: j['juz'] as int,
+        purity: j['purity'] as int,
+        buyAmount: (j['buyAmount'] as num).toDouble(),
+        sellAmount: (j['sellAmount'] as num).toDouble(),
+      );
 }
 
 class HomePage extends StatefulWidget {
@@ -121,8 +121,7 @@ class _HomePageState extends State<HomePage> {
               child: const Text('إلغاء')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('حذف',
-                  style: TextStyle(color: Colors.red))),
+              child: const Text('حذف', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -198,6 +197,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addDeal,
         icon: const Icon(Icons.add),
@@ -241,8 +241,7 @@ class _HomePageState extends State<HomePage> {
       color: const Color(0xFFB8860B),
       child: Row(
         children: [
-          _cell('تاريخ', wDate,
-              color: Colors.white, weight: FontWeight.bold),
+          _cell('تاريخ', wDate, color: Colors.white, weight: FontWeight.bold),
           _cell('وزن', wWeight, color: Colors.white, weight: FontWeight.bold),
           _cell('عيار', wPurity, color: Colors.white, weight: FontWeight.bold),
           _cell('مبلغ الشراء', wBuy,
@@ -293,7 +292,8 @@ class _HomePageState extends State<HomePage> {
           _cell(
             _fmt(totalProfit),
             wProfit,
-            color: totalProfit >= 0 ? Colors.lightGreenAccent : Colors.redAccent,
+            color:
+                totalProfit >= 0 ? Colors.lightGreenAccent : Colors.redAccent,
             weight: FontWeight.bold,
           ),
         ],
@@ -408,8 +408,7 @@ class _AddDealPageState extends State<AddDealPage> {
             _label('الوزن (جرام . حبة . جزء)'),
             Row(
               children: [
-                Expanded(
-                    child: _numField(gramsCtrl, 'جرام', Icons.scale)),
+                Expanded(child: _numField(gramsCtrl, 'جرام', Icons.scale)),
                 const SizedBox(width: 6),
                 Expanded(child: _numField(habbaCtrl, 'حبة', Icons.circle)),
                 const SizedBox(width: 6),
@@ -428,14 +427,16 @@ class _AddDealPageState extends State<AddDealPage> {
             _label('مبلغ الشراء (جنيه)'),
             TextField(
               controller: buyCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: _dec(Icons.shopping_cart),
             ),
             const SizedBox(height: 16),
             _label('مبلغ البيع (جنيه)'),
             TextField(
               controller: sellCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: _dec(Icons.sell),
             ),
             const SizedBox(height: 28),
@@ -444,8 +445,7 @@ class _AddDealPageState extends State<AddDealPage> {
               child: ElevatedButton.icon(
                 onPressed: _save,
                 icon: const Icon(Icons.save),
-                label: const Text('حفظ',
-                    style: TextStyle(fontSize: 18)),
+                label: const Text('حفظ', style: TextStyle(fontSize: 18)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFB8860B),
                   foregroundColor: Colors.white,
@@ -461,8 +461,7 @@ class _AddDealPageState extends State<AddDealPage> {
   Widget _label(String s) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Text(s,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 15)),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
       );
 
   InputDecoration _dec(IconData icon) => InputDecoration(
