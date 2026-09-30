@@ -1,16 +1,36 @@
 workflows:
   android-workflow:
-    name: Android APK Build
-    max_build_duration: 60
-    instance_type: mac_mini_m2
+    name: Android Build (APK + AAB)
+    # لينكس أرخص وأسرع كثيراً من الماك لبناء الأندرويد
+    instance_type: linux_x2
+    max_build_duration: 45
     environment:
       flutter: stable
+      java: 17
     scripts:
-      - name: Get Flutter packages
+      - name: تحميل الحزم
         script: flutter pub get
-      - name: Clean build
-        script: flutter clean
-      - name: Build APK
-        script: flutter build apk --release
+
+      - name: فحص الكود
+        script: flutter analyze
+
+      - name: الاختبارات
+        script: flutter test
+
+      - name: بناء APK و AAB
+        script: |
+          flutter build apk --release
+          flutter build appbundle --release
+
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
+      - build/app/outputs/bundle/release/*.aab
+      - build/app/outputs/mapping/release/mapping.txt
+
+    publishing:
+      email:
+        recipients:
+          - tajalsir2026@gmail.com
+        notify:
+          success: true
+          failure: true

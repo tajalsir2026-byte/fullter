@@ -1,7 +1,7 @@
-name: fullter
-description: A counter app with save feature
+name: gold_accounts
+description: "تطبيق محاسبة لمحلات الذهب: مشتريات، مبيعات، منصرفات، شركاء، وأرباح."
 publish_to: 'none'
-version: 3.0.0+3
+version: 4.0.0+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -9,8 +9,19 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.6
-  shared_preferences: ^2.2.2
+
+  # تخزين محلي
+  shared_preferences: '>=2.2.0 <3.0.0'
+
+  # تشفير كلمة السر (SHA-256) — حزمة Dart خالصة بدون كود أصلي
+  crypto: '>=3.0.0 <4.0.0'
+
+  # مسار مجلد النسخ الاحتياطية
+  path_provider: '>=2.0.0 <3.0.0'
 
 dev_dependencies:
   flutter_test:

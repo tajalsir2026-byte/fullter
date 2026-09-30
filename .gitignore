@@ -41,3 +41,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# مفاتيح التوقيع — لا ترفعها على GitHub أبداً
+android/key.properties
+*.jks
+*.keystore
