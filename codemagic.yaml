@@ -8,6 +8,8 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+      - name: Clean build
+        script: flutter clean
       - name: Build APK
         script: flutter build apk --release
     artifacts:
