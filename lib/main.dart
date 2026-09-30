@@ -209,7 +209,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
   }
 }
 
-// ================ Main Page (with Dropdown) ================
+// ================ Main Page ================
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
   @override
@@ -888,8 +888,7 @@ class ExpensesScreenState extends State<ExpensesScreen> {
     final pData = prefs.getString('partners_v1');
     if (pData != null) {
       final list = jsonDecode(pData) as List;
-      partners =
-          list.map((e) => Partner.fromJson(e).name).toList();
+      partners = list.map((e) => Partner.fromJson(e).name).toList();
     }
     setState(() => loading = false);
   }
@@ -1026,8 +1025,9 @@ class ExpensesScreenState extends State<ExpensesScreen> {
   static const double wDate = 100;
   static const double wAmount = 110;
   static const double wCategory = 130;
-  static const double wTarget = 120;
-  static const double wNotes = 200;
+  static const double wType = 90;
+  static const double wName = 110;
+  static const double wNotes = 170;
 
   Widget _cell(String t, double w,
       {Color color = Colors.black87,
@@ -1054,7 +1054,9 @@ class ExpensesScreenState extends State<ExpensesScreen> {
               color: Colors.white, weight: FontWeight.bold),
           _cell('الفئة', wCategory,
               color: Colors.white, weight: FontWeight.bold),
-          _cell('المستفيد', wTarget,
+          _cell('النوع', wType,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('الاسم', wName,
               color: Colors.white, weight: FontWeight.bold),
           _cell('ملاحظات', wNotes,
               color: Colors.white, weight: FontWeight.bold),
@@ -1063,15 +1065,18 @@ class ExpensesScreenState extends State<ExpensesScreen> {
 
   Widget _row(Expense e, int i) {
     final bg = i.isEven ? Colors.white : const Color(0xFFFFF8E1);
+    final isGen = e.isGeneral;
     return Row(children: [
       _cell(dateStr(e.date), wDate, bg: bg),
       _cell(fmtNum(e.amount), wAmount, bg: bg),
       _cell(e.category, wCategory, bg: bg),
-      _cell(e.target, wTarget,
+      _cell(isGen ? 'عام' : 'خاص', wType,
           bg: bg,
-          color: e.isGeneral
-              ? Colors.orange.shade800
-              : Colors.blue.shade800,
+          color: isGen ? Colors.orange.shade800 : Colors.blue.shade800,
+          weight: FontWeight.bold),
+      _cell(isGen ? '—' : e.target, wName,
+          bg: bg,
+          color: isGen ? Colors.black54 : Colors.blue.shade900,
           weight: FontWeight.bold),
       _cell(e.notes.isEmpty ? '—' : e.notes, wNotes, bg: bg),
     ]);
@@ -1084,9 +1089,10 @@ class ExpensesScreenState extends State<ExpensesScreen> {
               color: Colors.white, weight: FontWeight.bold),
           _cell(fmtNum(total), wAmount,
               color: Colors.amber, weight: FontWeight.bold),
-          _cell('عام: ${fmtNum(totalGeneral)}', wCategory,
+          _cell('', wCategory, color: Colors.white),
+          _cell('عام: ${fmtNum(totalGeneral)}', wType,
               color: Colors.orangeAccent, weight: FontWeight.bold),
-          _cell('', wTarget, color: Colors.white),
+          _cell('', wName, color: Colors.white),
           _cell('', wNotes, color: Colors.white),
         ]),
       );
@@ -1172,8 +1178,7 @@ class PartnersScreenState extends State<PartnersScreen> {
     }
   }
 
-  double get totalCapital =>
-      items.fold(0.0, (s, p) => s + p.capital);
+  double get totalCapital => items.fold(0.0, (s, p) => s + p.capital);
 
   @override
   Widget build(BuildContext context) {
@@ -1275,8 +1280,7 @@ class SettingsScreen extends StatelessWidget {
                 maxLength: 4,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 22, letterSpacing: 8),
+                style: const TextStyle(fontSize: 22, letterSpacing: 8),
                 decoration: const InputDecoration(
                   hintText: 'الرقم الجديد',
                   counterText: '',
@@ -1291,8 +1295,7 @@ class SettingsScreen extends StatelessWidget {
                 maxLength: 4,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 22, letterSpacing: 8),
+                style: const TextStyle(fontSize: 22, letterSpacing: 8),
                 decoration: const InputDecoration(
                   hintText: 'تأكيد الرقم',
                   counterText: '',
@@ -1365,7 +1368,7 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
           const Padding(
             padding: EdgeInsets.all(20),
-            child: Text('نسخة 2.0',
+            child: Text('نسخة 2.1',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 12)),
           ),
@@ -1811,7 +1814,7 @@ class _AddSalePageState extends State<AddSalePage> {
   }
 }
 
-// ================ Add Expense ================
+// ================ Add Expense (NEW) ================
 class AddExpensePage extends StatefulWidget {
   final Expense? existing;
   final List<String> partners;
@@ -1831,6 +1834,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
     'كهرباء', 'إيجار', 'فطور', 'غداء', 'بيت',
     'صيانة', 'نقل', 'ضيافة', 'رواتب', 'أخرى',
   ];
+
+  bool get isPrivate => target != kGeneral;
 
   @override
   void initState() {
@@ -1901,6 +1906,18 @@ class _AddExpensePageState extends State<AddExpensePage> {
     }
   }
 
+  void _selectGeneral() {
+    setState(() => target = kGeneral);
+  }
+
+  void _selectPrivate() {
+    if (widget.partners.isEmpty) {
+      _msg('أضف شركاء أولًا من صفحة رأس المال');
+      return;
+    }
+    setState(() => target = widget.partners.first);
+  }
+
   void _save() {
     final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
     if (amt <= 0) {
@@ -1933,7 +1950,6 @@ class _AddExpensePageState extends State<AddExpensePage> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
-    final allTargets = [kGeneral, ...widget.partners];
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? 'تعديل مصروف' : 'مصروف جديد'),
@@ -1988,35 +2004,68 @@ class _AddExpensePageState extends State<AddExpensePage> {
               prefixIcon: Icon(Icons.edit),
             ),
           ),
-          const SizedBox(height: 16),
-          _label('المستفيد'),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade400),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Column(
-              children: allTargets.map((t) {
-                final selected = target == t;
-                return RadioListTile<String>(
-                  value: t,
-                  groupValue: target,
-                  onChanged: (v) => setState(() => target = v!),
-                  title: Text(
-                    t,
-                    style: TextStyle(
-                      fontWeight: selected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: selected ? kGold : Colors.black87,
-                    ),
-                  ),
-                  activeColor: kGold,
-                );
-              }).toList(),
-            ),
+          const SizedBox(height: 20),
+
+          // ===== نوع المصروف (جديد) =====
+          _label('نوع المصروف'),
+          Row(
+            children: [
+              Expanded(
+                child: _typeButton(
+                  label: 'عام',
+                  sublabel: 'يقسم بين الشركاء',
+                  icon: Icons.groups,
+                  color: Colors.orange,
+                  selected: !isPrivate,
+                  onTap: _selectGeneral,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _typeButton(
+                  label: 'خاص',
+                  sublabel: 'على شريك معين',
+                  icon: Icons.person,
+                  color: Colors.blue,
+                  selected: isPrivate,
+                  onTap: _selectPrivate,
+                ),
+              ),
+            ],
           ),
+
+          // ===== إذا خاص → عرض الشركاء =====
+          if (isPrivate) ...[
+            const SizedBox(height: 16),
+            _label('اختر الشريك'),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.blue.shade200),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: widget.partners.map((p) {
+                  final sel = target == p;
+                  return RadioListTile<String>(
+                    value: p,
+                    groupValue: target,
+                    onChanged: (v) => setState(() => target = v!),
+                    title: Text(
+                      p,
+                      style: TextStyle(
+                        fontWeight:
+                            sel ? FontWeight.bold : FontWeight.normal,
+                        color: sel ? Colors.blue.shade800 : Colors.black87,
+                      ),
+                    ),
+                    activeColor: Colors.blue,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 16),
           _label('ملاحظات'),
           TextField(
@@ -2037,6 +2086,53 @@ class _AddExpensePageState extends State<AddExpensePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _typeButton({
+    required String label,
+    required String sublabel,
+    required IconData icon,
+    required Color color,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? color : Colors.white,
+          border: Border.all(color: color, width: 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon,
+                color: selected ? Colors.white : color, size: 30),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : color,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              sublabel,
+              style: TextStyle(
+                color: selected
+                    ? Colors.white.withOpacity(0.9)
+                    : Colors.grey,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
