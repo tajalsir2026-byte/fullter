@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.fullter"
+    namespace = "com.tajalsir.gold_shop"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
