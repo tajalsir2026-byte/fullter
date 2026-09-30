@@ -30,7 +30,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - tajalsir2026@example.com   # ← غيّرها لإيميلك ليصلك الـ APK
+          - tajalsir2026@gmail.com
         notify:
           success: true
           failure: true
