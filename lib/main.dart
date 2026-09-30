@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'models.dart';
+import 'helpers.dart';
 
 void main() => runApp(const GoldApp());
-
-const kGold = Color(0xFFB8860B);
-const kDarkGold = Color(0xFF4A3800);
 
 class GoldApp extends StatelessWidget {
   const GoldApp({super.key});
@@ -26,145 +25,7 @@ class GoldApp extends StatelessWidget {
   }
 }
 
-// ===== Helpers =====
-String fmtNum(double n) {
-  final s = n.abs().toStringAsFixed(0);
-  final buf = StringBuffer();
-  for (int i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
-    buf.write(s[i]);
-  }
-  return (n < 0 ? '-' : '') + buf.toString();
-}
-
-String weightToString(double w) {
-  final g = w.floor();
-  final rem = w - g;
-  final h = (rem * 10).floor();
-  final j = ((rem * 100) - (h * 10)).round();
-  return '$g.$h.$j';
-}
-
-// ===== Models =====
-class Purchase {
-  final String id;
-  final DateTime date;
-  final int grams, habba, juz, purity;
-  final double amount, pendingAmount;
-  final String seller, bankAccount, notes;
-
-  Purchase({
-    required this.id,
-    required this.date,
-    required this.grams,
-    required this.habba,
-    required this.juz,
-    required this.purity,
-    required this.amount,
-    required this.pendingAmount,
-    required this.seller,
-    required this.bankAccount,
-    required this.notes,
-  });
-
-  double get weight => grams + habba / 10 + juz / 100;
-  String get weightStr => '$grams.$habba.$juz';
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'date': date.toIso8601String(),
-        'grams': grams,
-        'habba': habba,
-        'juz': juz,
-        'purity': purity,
-        'amount': amount,
-        'pendingAmount': pendingAmount,
-        'seller': seller,
-        'bankAccount': bankAccount,
-        'notes': notes,
-      };
-
-  factory Purchase.fromJson(Map<String, dynamic> j) => Purchase(
-        id: j['id'] as String,
-        date: DateTime.parse(j['date'] as String),
-        grams: j['grams'] as int,
-        habba: j['habba'] as int,
-        juz: j['juz'] as int,
-        purity: (j['purity'] as num?)?.toInt() ?? 0,
-        amount: (j['amount'] as num).toDouble(),
-        pendingAmount: (j['pendingAmount'] as num?)?.toDouble() ?? 0,
-        seller: (j['seller'] as String?) ?? '',
-        bankAccount: (j['bankAccount'] as String?) ?? '',
-        notes: (j['notes'] as String?) ?? '',
-      );
-
-  Purchase copyWith({double? pendingAmount}) => Purchase(
-        id: id,
-        date: date,
-        grams: grams,
-        habba: habba,
-        juz: juz,
-        purity: purity,
-        amount: amount,
-        pendingAmount: pendingAmount ?? this.pendingAmount,
-        seller: seller,
-        bankAccount: bankAccount,
-        notes: notes,
-      );
-}
-
-class Sale {
-  final String id;
-  final DateTime date;
-  final int grams, habba, juz, purity;
-  final double buyAmount, sellAmount;
-  final String buyer, notes;
-
-  Sale({
-    required this.id,
-    required this.date,
-    required this.grams,
-    required this.habba,
-    required this.juz,
-    required this.purity,
-    required this.buyAmount,
-    required this.sellAmount,
-    required this.buyer,
-    required this.notes,
-  });
-
-  double get weight => grams + habba / 10 + juz / 100;
-  double get profit => sellAmount - buyAmount;
-  String get weightStr => '$grams.$habba.$juz';
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'date': date.toIso8601String(),
-        'grams': grams,
-        'habba': habba,
-        'juz': juz,
-        'purity': purity,
-        'buyAmount': buyAmount,
-        'sellAmount': sellAmount,
-        'buyer': buyer,
-        'notes': notes,
-      };
-
-  factory Sale.fromJson(Map<String, dynamic> j) => Sale(
-        id: j['id'] as String,
-        date: DateTime.parse(j['date'] as String),
-        grams: j['grams'] as int,
-        habba: j['habba'] as int,
-        juz: j['juz'] as int,
-        purity: (j['purity'] as num?)?.toInt() ?? 0,
-        buyAmount: (j['buyAmount'] as num).toDouble(),
-        sellAmount: (j['sellAmount'] as num).toDouble(),
-        buyer: (j['buyer'] as String?) ?? '',
-        notes: (j['notes'] as String?) ?? '',
-      );
-}
-
-// ===== Password Gate =====
+// ================ Password Gate ================
 class PasswordGate extends StatefulWidget {
   const PasswordGate({super.key});
   @override
@@ -274,16 +135,12 @@ class _PasswordScreenState extends State<PasswordScreen> {
             children: [
               const Icon(Icons.lock, size: 80, color: kGold),
               const SizedBox(height: 16),
-              Text(
-                isSetup ? 'إنشاء كلمة سر' : 'أدخل كلمة السر',
-                style: const TextStyle(
-                    fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              Text(isSetup ? 'إنشاء كلمة سر' : 'أدخل كلمة السر',
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text(
-                isSetup
-                    ? 'اختر 4 أرقام لحماية التطبيق'
-                    : 'التطبيق محمي بكلمة سر',
+                isSetup ? 'اختر 4 أرقام لحماية التطبيق' : 'التطبيق محمي بكلمة سر',
                 style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 32),
@@ -352,7 +209,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
   }
 }
 
-// ===== Main Page =====
+// ================ Main Page (with Dropdown) ================
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
   @override
@@ -361,38 +218,112 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _index = 0;
+  final _kPurchases = GlobalKey<PurchasesScreenState>();
+  final _kSales = GlobalKey<SalesScreenState>();
+  final _kExpenses = GlobalKey<ExpensesScreenState>();
+  final _kPartners = GlobalKey<PartnersScreenState>();
+
+  static const _pages = [
+    'المشتريات',
+    'المبيعات',
+    'المنصرفات اليومية',
+    'صفحة رأس المال',
+  ];
+
+  void _onFAB() {
+    switch (_index) {
+      case 0:
+        _kPurchases.currentState?.openAdd();
+        break;
+      case 1:
+        _kSales.currentState?.openAdd();
+        break;
+      case 2:
+        _kExpenses.currentState?.openAdd();
+        break;
+      case 3:
+        _kPartners.currentState?.openAdd();
+        break;
+    }
+  }
+
+  String get _fabLabel {
+    switch (_index) {
+      case 0:
+        return 'مشترى جديد';
+      case 1:
+        return 'بيع جديد';
+      case 2:
+        return 'مصروف جديد';
+      case 3:
+        return 'شريك جديد';
+    }
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: kGold,
+        foregroundColor: Colors.white,
+        centerTitle: false,
+        title: DropdownButton<int>(
+          value: _index,
+          isDense: true,
+          dropdownColor: kGold,
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+          underline: const SizedBox(),
+          style: const TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          items: List.generate(
+            _pages.length,
+            (i) => DropdownMenuItem<int>(
+              value: i,
+              child: Text(_pages[i],
+                  style: const TextStyle(color: Colors.white)),
+            ),
+          ),
+          onChanged: (v) => setState(() => _index = v ?? 0),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: IndexedStack(
         index: _index,
-        children: const [PurchasesScreen(), SalesScreen(), SettingsScreen()],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
-        selectedItemColor: kGold,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart), label: 'المشتريات'),
-          BottomNavigationBarItem(icon: Icon(Icons.sell), label: 'المبيعات'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'الإعدادات'),
+        children: [
+          PurchasesScreen(key: _kPurchases),
+          SalesScreen(key: _kSales),
+          ExpensesScreen(key: _kExpenses),
+          PartnersScreen(key: _kPartners),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _onFAB,
+        icon: const Icon(Icons.add),
+        label: Text(_fabLabel),
+        backgroundColor: kGold,
+        foregroundColor: Colors.white,
       ),
     );
   }
 }
 
-// ===== Purchases Screen =====
+// ================ Purchases Screen ================
 class PurchasesScreen extends StatefulWidget {
   const PurchasesScreen({super.key});
   @override
-  State<PurchasesScreen> createState() => _PurchasesScreenState();
+  State<PurchasesScreen> createState() => PurchasesScreenState();
 }
 
-class _PurchasesScreenState extends State<PurchasesScreen> {
+class PurchasesScreenState extends State<PurchasesScreen> {
   static const _key = 'purchases_v2';
   List<Purchase> items = [];
   bool loading = true;
@@ -419,7 +350,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         _key, jsonEncode(items.map((e) => e.toJson()).toList()));
   }
 
-  Future<void> _add() async {
+  Future<void> openAdd() async {
     final r = await Navigator.push<Purchase>(
       context,
       MaterialPageRoute(builder: (_) => const AddPurchasePage()),
@@ -453,8 +384,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               child: const Text('إلغاء')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('حذف',
-                  style: TextStyle(color: Colors.red))),
+              child:
+                  const Text('حذف', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -477,10 +408,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('المتبقي الحالي: ${fmtNum(p.pendingAmount)} ج.س',
+            Text('المتبقي: ${fmtNum(p.pendingAmount)} ج.س',
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
             Text('للبائع: ${p.seller.isEmpty ? "—" : p.seller}',
                 style: const TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 14),
@@ -521,15 +451,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       items[i] = p.copyWith(pendingAmount: newPending);
     });
     await _save();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(newPending == 0
-            ? '✓ تم تسديد المتبقي بالكامل'
-            : 'تم دفع ${fmtNum(amount)} — المتبقي: ${fmtNum(newPending)}'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
   Future<void> _options(int i) async {
@@ -547,8 +468,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             children: [
               if (hasPending)
                 ListTile(
-                  leading: const Icon(Icons.check_circle,
-                      color: Colors.green),
+                  leading:
+                      const Icon(Icons.check_circle, color: Colors.green),
                   title: Text(
                       'تسديد المتبقي (${fmtNum(items[i].pendingAmount)} ج.س)'),
                   onTap: () {
@@ -585,52 +506,36 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('سجل المشتريات'),
-        centerTitle: true,
-        backgroundColor: kGold,
-        foregroundColor: Colors.white,
-      ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : items.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      'لا توجد مشتريات بعد\nاضغط "مشترى جديد" للإضافة\n\nللتعديل/الحذف/التسديد: اضغط على السطر',
-                      textAlign: TextAlign.center,
-                      style:
-                          TextStyle(fontSize: 15, color: Colors.grey),
-                    ),
-                  ),
-                )
-              : SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _header(),
-                        ...List.generate(
-                          items.length,
-                          (i) => InkWell(
-                            onTap: () => _options(i),
-                            child: _row(items[i], i),
-                          ),
-                        ),
-                        _totals(),
-                      ],
-                    ),
-                  ),
-                ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _add,
-        icon: const Icon(Icons.add),
-        label: const Text('مشترى جديد'),
-        backgroundColor: kGold,
-        foregroundColor: Colors.white,
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (items.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text(
+            'لا توجد مشتريات بعد\nاضغط "مشترى جديد" للإضافة',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _header(),
+            ...List.generate(
+              items.length,
+              (i) => InkWell(
+                onTap: () => _options(i),
+                child: _row(items[i], i),
+              ),
+            ),
+            _totals(),
+          ],
+        ),
       ),
     );
   }
@@ -653,20 +558,16 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
       color: bg,
       alignment: Alignment.center,
-      child: Text(
-        t,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-            color: color, fontWeight: weight, fontSize: 12),
-      ),
+      child: Text(t,
+          textAlign: TextAlign.center,
+          style:
+              TextStyle(color: color, fontWeight: weight, fontSize: 12)),
     );
   }
 
-  Widget _header() {
-    return Container(
-      color: kGold,
-      child: Row(
-        children: [
+  Widget _header() => Container(
+        color: kGold,
+        child: Row(children: [
           _cell('تاريخ', wDate, color: Colors.white, weight: FontWeight.bold),
           _cell('وزن', wWeight, color: Colors.white, weight: FontWeight.bold),
           _cell('عيار', wPurity, color: Colors.white, weight: FontWeight.bold),
@@ -678,42 +579,31 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               color: Colors.white, weight: FontWeight.bold),
           _cell('ملاحظات', wNotes,
               color: Colors.white, weight: FontWeight.bold),
-        ],
-      ),
-    );
-  }
+        ]),
+      );
 
   Widget _row(Purchase p, int i) {
     final bg = i.isEven ? Colors.white : const Color(0xFFFFF8E1);
-    return Row(
-      children: [
-        _cell('${p.date.day}/${p.date.month}/${p.date.year}', wDate, bg: bg),
-        _cell(p.weightStr, wWeight, bg: bg),
-        _cell(p.purity == 0 ? '—' : '${p.purity}', wPurity, bg: bg),
-        _cell(fmtNum(p.amount), wAmount, bg: bg),
-        _cell(p.seller.isEmpty ? '—' : p.seller, wSeller, bg: bg),
-        _cell(p.bankAccount.isEmpty ? '—' : p.bankAccount, wBank, bg: bg),
-        _cell(
-          p.pendingAmount == 0
-              ? '✓'
-              : fmtNum(p.pendingAmount),
-          wPending,
+    return Row(children: [
+      _cell(dateStr(p.date), wDate, bg: bg),
+      _cell(p.weightStr, wWeight, bg: bg),
+      _cell(p.purity == 0 ? '—' : '${p.purity}', wPurity, bg: bg),
+      _cell(fmtNum(p.amount), wAmount, bg: bg),
+      _cell(p.seller.isEmpty ? '—' : p.seller, wSeller, bg: bg),
+      _cell(p.bankAccount.isEmpty ? '—' : p.bankAccount, wBank, bg: bg),
+      _cell(p.pendingAmount == 0 ? '✓' : fmtNum(p.pendingAmount), wPending,
           bg: bg,
           color: p.pendingAmount > 0
               ? Colors.red.shade800
               : Colors.green.shade700,
-          weight: FontWeight.bold,
-        ),
-        _cell(p.notes.isEmpty ? '—' : p.notes, wNotes, bg: bg),
-      ],
-    );
+          weight: FontWeight.bold),
+      _cell(p.notes.isEmpty ? '—' : p.notes, wNotes, bg: bg),
+    ]);
   }
 
-  Widget _totals() {
-    return Container(
-      color: kDarkGold,
-      child: Row(
-        children: [
+  Widget _totals() => Container(
+        color: kDarkGold,
+        child: Row(children: [
           _cell('الإجمالي', wDate,
               color: Colors.white, weight: FontWeight.bold),
           _cell(weightToString(totalWeight), wWeight,
@@ -726,20 +616,18 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           _cell(fmtNum(totalPending), wPending,
               color: Colors.orangeAccent, weight: FontWeight.bold),
           _cell('', wNotes, color: Colors.white),
-        ],
-      ),
-    );
-  }
+        ]),
+      );
 }
 
-// ===== Sales Screen =====
+// ================ Sales Screen ================
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
   @override
-  State<SalesScreen> createState() => _SalesScreenState();
+  State<SalesScreen> createState() => SalesScreenState();
 }
 
-class _SalesScreenState extends State<SalesScreen> {
+class SalesScreenState extends State<SalesScreen> {
   static const _key = 'sales_v1';
   List<Sale> items = [];
   bool loading = true;
@@ -766,7 +654,7 @@ class _SalesScreenState extends State<SalesScreen> {
         _key, jsonEncode(items.map((e) => e.toJson()).toList()));
   }
 
-  Future<void> _add() async {
+  Future<void> openAdd() async {
     final r = await Navigator.push<Sale>(
       context,
       MaterialPageRoute(builder: (_) => const AddSalePage()),
@@ -800,8 +688,8 @@ class _SalesScreenState extends State<SalesScreen> {
               child: const Text('إلغاء')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('حذف',
-                  style: TextStyle(color: Colors.red))),
+              child:
+                  const Text('حذف', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -853,52 +741,36 @@ class _SalesScreenState extends State<SalesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('سجل المبيعات'),
-        centerTitle: true,
-        backgroundColor: kGold,
-        foregroundColor: Colors.white,
-      ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : items.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      'لا توجد مبيعات بعد\nاضغط "بيع جديد" للإضافة\n\nللتعديل/الحذف: اضغط على السطر',
-                      textAlign: TextAlign.center,
-                      style:
-                          TextStyle(fontSize: 15, color: Colors.grey),
-                    ),
-                  ),
-                )
-              : SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _header(),
-                        ...List.generate(
-                          items.length,
-                          (i) => InkWell(
-                            onTap: () => _options(i),
-                            child: _row(items[i], i),
-                          ),
-                        ),
-                        _totals(),
-                      ],
-                    ),
-                  ),
-                ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _add,
-        icon: const Icon(Icons.add),
-        label: const Text('بيع جديد'),
-        backgroundColor: kGold,
-        foregroundColor: Colors.white,
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (items.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text(
+            'لا توجد مبيعات بعد\nاضغط "بيع جديد" للإضافة',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _header(),
+            ...List.generate(
+              items.length,
+              (i) => InkWell(
+                onTap: () => _options(i),
+                child: _row(items[i], i),
+              ),
+            ),
+            _totals(),
+          ],
+        ),
       ),
     );
   }
@@ -921,20 +793,16 @@ class _SalesScreenState extends State<SalesScreen> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       color: bg,
       alignment: Alignment.center,
-      child: Text(
-        t,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-            color: color, fontWeight: weight, fontSize: 12),
-      ),
+      child: Text(t,
+          textAlign: TextAlign.center,
+          style:
+              TextStyle(color: color, fontWeight: weight, fontSize: 12)),
     );
   }
 
-  Widget _header() {
-    return Container(
-      color: kGold,
-      child: Row(
-        children: [
+  Widget _header() => Container(
+        color: kGold,
+        child: Row(children: [
           _cell('تاريخ', wDate, color: Colors.white, weight: FontWeight.bold),
           _cell('وزن', wWeight, color: Colors.white, weight: FontWeight.bold),
           _cell('عيار', wPurity, color: Colors.white, weight: FontWeight.bold),
@@ -946,40 +814,31 @@ class _SalesScreenState extends State<SalesScreen> {
               color: Colors.white, weight: FontWeight.bold),
           _cell('ملاحظات', wNotes,
               color: Colors.white, weight: FontWeight.bold),
-        ],
-      ),
-    );
-  }
+        ]),
+      );
 
   Widget _row(Sale s, int i) {
     final bg = i.isEven ? Colors.white : const Color(0xFFFFF8E1);
-    return Row(
-      children: [
-        _cell('${s.date.day}/${s.date.month}/${s.date.year}', wDate, bg: bg),
-        _cell(s.weightStr, wWeight, bg: bg),
-        _cell('${s.purity}', wPurity, bg: bg),
-        _cell(fmtNum(s.buyAmount), wBuy, bg: bg),
-        _cell(fmtNum(s.sellAmount), wSell, bg: bg),
-        _cell(
-          fmtNum(s.profit),
-          wProfit,
+    return Row(children: [
+      _cell(dateStr(s.date), wDate, bg: bg),
+      _cell(s.weightStr, wWeight, bg: bg),
+      _cell('${s.purity}', wPurity, bg: bg),
+      _cell(fmtNum(s.buyAmount), wBuy, bg: bg),
+      _cell(fmtNum(s.sellAmount), wSell, bg: bg),
+      _cell(fmtNum(s.profit), wProfit,
           bg: bg,
           color: s.profit >= 0
               ? Colors.green.shade800
               : Colors.red.shade800,
-          weight: FontWeight.bold,
-        ),
-        _cell(s.buyer.isEmpty ? '—' : s.buyer, wBuyer, bg: bg),
-        _cell(s.notes.isEmpty ? '—' : s.notes, wNotes, bg: bg),
-      ],
-    );
+          weight: FontWeight.bold),
+      _cell(s.buyer.isEmpty ? '—' : s.buyer, wBuyer, bg: bg),
+      _cell(s.notes.isEmpty ? '—' : s.notes, wNotes, bg: bg),
+    ]);
   }
 
-  Widget _totals() {
-    return Container(
-      color: kDarkGold,
-      child: Row(
-        children: [
+  Widget _totals() => Container(
+        color: kDarkGold,
+        child: Row(children: [
           _cell('الإجمالي', wDate,
               color: Colors.white, weight: FontWeight.bold),
           _cell(weightToString(totalWeight), wWeight,
@@ -989,23 +848,410 @@ class _SalesScreenState extends State<SalesScreen> {
               color: Colors.white, weight: FontWeight.bold),
           _cell(fmtNum(totalSell), wSell,
               color: Colors.white, weight: FontWeight.bold),
-          _cell(
-            fmtNum(totalProfit),
-            wProfit,
-            color: totalProfit >= 0
-                ? Colors.lightGreenAccent
-                : Colors.redAccent,
-            weight: FontWeight.bold,
-          ),
+          _cell(fmtNum(totalProfit), wProfit,
+              color: totalProfit >= 0
+                  ? Colors.lightGreenAccent
+                  : Colors.redAccent,
+              weight: FontWeight.bold),
           _cell('', wBuyer, color: Colors.white),
           _cell('', wNotes, color: Colors.white),
+        ]),
+      );
+}
+
+// ================ Expenses Screen ================
+class ExpensesScreen extends StatefulWidget {
+  const ExpensesScreen({super.key});
+  @override
+  State<ExpensesScreen> createState() => ExpensesScreenState();
+}
+
+class ExpensesScreenState extends State<ExpensesScreen> {
+  static const _key = 'expenses_v1';
+  List<Expense> items = [];
+  List<String> partners = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_key);
+    if (data != null) {
+      final list = jsonDecode(data) as List;
+      items = list.map((e) => Expense.fromJson(e)).toList();
+    }
+    final pData = prefs.getString('partners_v1');
+    if (pData != null) {
+      final list = jsonDecode(pData) as List;
+      partners =
+          list.map((e) => Partner.fromJson(e).name).toList();
+    }
+    setState(() => loading = false);
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _key, jsonEncode(items.map((e) => e.toJson()).toList()));
+  }
+
+  Future<void> openAdd() async {
+    final r = await Navigator.push<Expense>(
+      context,
+      MaterialPageRoute(
+          builder: (_) => AddExpensePage(partners: partners)),
+    );
+    if (r != null) {
+      setState(() => items.insert(0, r));
+      await _save();
+    }
+  }
+
+  Future<void> _edit(int i) async {
+    final r = await Navigator.push<Expense>(
+      context,
+      MaterialPageRoute(
+          builder: (_) =>
+              AddExpensePage(partners: partners, existing: items[i])),
+    );
+    if (r != null) {
+      setState(() => items[i] = r);
+      await _save();
+    }
+  }
+
+  Future<void> _delete(int i) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف المصروف'),
+        content: const Text('هل تريد حذف هذا المصروف؟'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child:
+                  const Text('حذف', style: TextStyle(color: Colors.red))),
         ],
       ),
+    );
+    if (ok == true) {
+      setState(() => items.removeAt(i));
+      await _save();
+    }
+  }
+
+  Future<void> _options(int i) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit, color: Colors.blue),
+                title: const Text('تعديل'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _edit(i);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('حذف'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _delete(i);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  double get total => items.fold(0.0, (s, e) => s + e.amount);
+  double get totalGeneral =>
+      items.where((e) => e.isGeneral).fold(0.0, (s, e) => s + e.amount);
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    if (items.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text(
+            'لا توجد مصروفات بعد\nاضغط "مصروف جديد" للإضافة',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _header(),
+            ...List.generate(
+              items.length,
+              (i) => InkWell(
+                onTap: () => _options(i),
+                child: _row(items[i], i),
+              ),
+            ),
+            _totals(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const double wDate = 100;
+  static const double wAmount = 110;
+  static const double wCategory = 130;
+  static const double wTarget = 120;
+  static const double wNotes = 200;
+
+  Widget _cell(String t, double w,
+      {Color color = Colors.black87,
+      FontWeight weight = FontWeight.normal,
+      Color? bg}) {
+    return Container(
+      width: w,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+      color: bg,
+      alignment: Alignment.center,
+      child: Text(t,
+          textAlign: TextAlign.center,
+          style:
+              TextStyle(color: color, fontWeight: weight, fontSize: 13)),
+    );
+  }
+
+  Widget _header() => Container(
+        color: kGold,
+        child: Row(children: [
+          _cell('تاريخ', wDate,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('المبلغ', wAmount,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('الفئة', wCategory,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('المستفيد', wTarget,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell('ملاحظات', wNotes,
+              color: Colors.white, weight: FontWeight.bold),
+        ]),
+      );
+
+  Widget _row(Expense e, int i) {
+    final bg = i.isEven ? Colors.white : const Color(0xFFFFF8E1);
+    return Row(children: [
+      _cell(dateStr(e.date), wDate, bg: bg),
+      _cell(fmtNum(e.amount), wAmount, bg: bg),
+      _cell(e.category, wCategory, bg: bg),
+      _cell(e.target, wTarget,
+          bg: bg,
+          color: e.isGeneral
+              ? Colors.orange.shade800
+              : Colors.blue.shade800,
+          weight: FontWeight.bold),
+      _cell(e.notes.isEmpty ? '—' : e.notes, wNotes, bg: bg),
+    ]);
+  }
+
+  Widget _totals() => Container(
+        color: kDarkGold,
+        child: Row(children: [
+          _cell('الإجمالي', wDate,
+              color: Colors.white, weight: FontWeight.bold),
+          _cell(fmtNum(total), wAmount,
+              color: Colors.amber, weight: FontWeight.bold),
+          _cell('عام: ${fmtNum(totalGeneral)}', wCategory,
+              color: Colors.orangeAccent, weight: FontWeight.bold),
+          _cell('', wTarget, color: Colors.white),
+          _cell('', wNotes, color: Colors.white),
+        ]),
+      );
+}
+
+// ================ Partners Screen ================
+class PartnersScreen extends StatefulWidget {
+  const PartnersScreen({super.key});
+  @override
+  State<PartnersScreen> createState() => PartnersScreenState();
+}
+
+class PartnersScreenState extends State<PartnersScreen> {
+  static const _key = 'partners_v1';
+  List<Partner> items = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_key);
+    if (data != null) {
+      final list = jsonDecode(data) as List;
+      items = list.map((e) => Partner.fromJson(e)).toList();
+    }
+    setState(() => loading = false);
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _key, jsonEncode(items.map((e) => e.toJson()).toList()));
+  }
+
+  Future<void> openAdd() async {
+    final r = await Navigator.push<Partner>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddPartnerPage()),
+    );
+    if (r != null) {
+      setState(() => items.add(r));
+      await _save();
+    }
+  }
+
+  Future<void> _edit(int i) async {
+    final r = await Navigator.push<Partner>(
+      context,
+      MaterialPageRoute(
+          builder: (_) => AddPartnerPage(existing: items[i])),
+    );
+    if (r != null) {
+      setState(() => items[i] = r);
+      await _save();
+    }
+  }
+
+  Future<void> _delete(int i) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الشريك'),
+        content: Text('حذف "${items[i].name}"؟'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child:
+                  const Text('حذف', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (ok == true) {
+      setState(() => items.removeAt(i));
+      await _save();
+    }
+  }
+
+  double get totalCapital =>
+      items.fold(0.0, (s, p) => s + p.capital);
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8E1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kGold, width: 2),
+          ),
+          child: Column(
+            children: [
+              const Text('إجمالي رأس المال',
+                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 4),
+              Text('${fmtNum(totalCapital)} ج.س',
+                  style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: kGold)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (items.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(30),
+              child: Text(
+                'لا يوجد شركاء بعد\nاضغط "شريك جديد" للإضافة',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          )
+        else
+          ...List.generate(items.length, (i) {
+            final p = items[i];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: kGold,
+                  child: Text(
+                    p.name.isNotEmpty ? p.name[0] : '?',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                title: Text(p.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: Text('رأس المال: ${fmtNum(p.capital)} ج.س'),
+                trailing: PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'edit') _edit(i);
+                    if (v == 'delete') _delete(i);
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'edit', child: Text('تعديل')),
+                    PopupMenuItem(
+                        value: 'delete',
+                        child:
+                            Text('حذف', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
     );
   }
 }
 
-// ===== Settings Screen =====
+// ================ Settings ================
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -1027,9 +1273,7 @@ class SettingsScreen extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 obscureText: true,
                 maxLength: 4,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 textAlign: TextAlign.center,
                 style:
                     const TextStyle(fontSize: 22, letterSpacing: 8),
@@ -1045,9 +1289,7 @@ class SettingsScreen extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 obscureText: true,
                 maxLength: 4,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 textAlign: TextAlign.center,
                 style:
                     const TextStyle(fontSize: 22, letterSpacing: 8),
@@ -1081,8 +1323,7 @@ class SettingsScreen extends StatelessWidget {
               },
               child: const Text('حفظ',
                   style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold)),
+                      color: Colors.green, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -1124,11 +1365,9 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
           const Padding(
             padding: EdgeInsets.all(20),
-            child: Text(
-              'نسخة 1.0 — المرحلة 1',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
+            child: Text('نسخة 2.0',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12)),
           ),
         ],
       ),
@@ -1136,7 +1375,7 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-// ===== Add Purchase Page =====
+// ================ Add Purchase ================
 class AddPurchasePage extends StatefulWidget {
   final Purchase? existing;
   const AddPurchasePage({super.key, this.existing});
@@ -1160,10 +1399,8 @@ class _AddPurchasePageState extends State<AddPurchasePage> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    gramsCtrl =
-        TextEditingController(text: e?.grams.toString() ?? '');
-    habbaCtrl =
-        TextEditingController(text: e?.habba.toString() ?? '');
+    gramsCtrl = TextEditingController(text: e?.grams.toString() ?? '');
+    habbaCtrl = TextEditingController(text: e?.habba.toString() ?? '');
     juzCtrl = TextEditingController(text: e?.juz.toString() ?? '');
     purityCtrl = TextEditingController(
         text: (e?.purity ?? 0) == 0 ? '' : e!.purity.toString());
@@ -1223,7 +1460,6 @@ class _AddPurchasePageState extends State<AddPurchasePage> {
       _msg('الحبة والجزء من 0 إلى 9');
       return;
     }
-
     Navigator.pop(
       context,
       Purchase(
@@ -1245,8 +1481,7 @@ class _AddPurchasePageState extends State<AddPurchasePage> {
 
   void _msg(String s) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(s), backgroundColor: Colors.red),
-    );
+        SnackBar(content: Text(s), backgroundColor: Colors.red));
   }
 
   @override
@@ -1267,67 +1502,54 @@ class _AddPurchasePageState extends State<AddPurchasePage> {
             onTap: _pickDate,
             child: InputDecorator(
               decoration: _dec(Icons.calendar_today),
-              child: Text('${date.day}/${date.month}/${date.year}'),
+              child: Text(dateStr(date)),
             ),
           ),
           const SizedBox(height: 16),
           _label('الوزن (جرام . حبة . جزء)'),
-          Row(
-            children: [
-              Expanded(
-                  child: _numField(gramsCtrl, 'جرام', Icons.scale)),
-              const SizedBox(width: 6),
-              Expanded(
-                  child: _numField(habbaCtrl, 'حبة', Icons.circle)),
-              const SizedBox(width: 6),
-              Expanded(
-                  child: _numField(
-                      juzCtrl, 'جزء', Icons.circle_outlined)),
-            ],
-          ),
+          Row(children: [
+            Expanded(child: _numField(gramsCtrl, 'جرام', Icons.scale)),
+            const SizedBox(width: 6),
+            Expanded(child: _numField(habbaCtrl, 'حبة', Icons.circle)),
+            const SizedBox(width: 6),
+            Expanded(
+                child: _numField(juzCtrl, 'جزء', Icons.circle_outlined)),
+          ]),
           const SizedBox(height: 16),
           _label('العيار (اختياري)'),
           TextField(
-            controller: purityCtrl,
-            keyboardType: TextInputType.number,
-            decoration: _dec(Icons.diamond),
-          ),
+              controller: purityCtrl,
+              keyboardType: TextInputType.number,
+              decoration: _dec(Icons.diamond)),
           const SizedBox(height: 16),
           _label('المبلغ الإجمالي (جنيه)'),
           TextField(
-            controller: amountCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            decoration: _dec(Icons.attach_money),
-          ),
+              controller: amountCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec(Icons.attach_money)),
           const SizedBox(height: 16),
           _label('اسم البائع (صاحب المبلغ)'),
-          TextField(
-            controller: sellerCtrl,
-            decoration: _dec(Icons.person),
-          ),
+          TextField(controller: sellerCtrl, decoration: _dec(Icons.person)),
           const SizedBox(height: 16),
           _label('رقم الحساب البنكي'),
           TextField(
-            controller: bankCtrl,
-            keyboardType: TextInputType.number,
-            decoration: _dec(Icons.account_balance),
-          ),
+              controller: bankCtrl,
+              keyboardType: TextInputType.number,
+              decoration: _dec(Icons.account_balance)),
           const SizedBox(height: 16),
-          _label('المبلغ المتبقي عندنا (للبائع)'),
+          _label('المبلغ المتبقي عندنا'),
           TextField(
-            controller: pendingCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            decoration: _dec(Icons.pending_actions),
-          ),
+              controller: pendingCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec(Icons.pending_actions)),
           const SizedBox(height: 16),
           _label('ملاحظات إضافية'),
           TextField(
-            controller: notesCtrl,
-            maxLines: 2,
-            decoration: _dec(Icons.notes),
-          ),
+              controller: notesCtrl,
+              maxLines: 2,
+              decoration: _dec(Icons.notes)),
           const SizedBox(height: 28),
           SizedBox(
             height: 52,
@@ -1337,9 +1559,7 @@ class _AddPurchasePageState extends State<AddPurchasePage> {
               label: Text(isEdit ? 'حفظ التعديلات' : 'حفظ',
                   style: const TextStyle(fontSize: 18)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: kGold,
-                foregroundColor: Colors.white,
-              ),
+                  backgroundColor: kGold, foregroundColor: Colors.white),
             ),
           ),
         ],
@@ -1379,7 +1599,7 @@ class _AddPurchasePageState extends State<AddPurchasePage> {
   }
 }
 
-// ===== Add Sale Page =====
+// ================ Add Sale ================
 class AddSalePage extends StatefulWidget {
   final Sale? existing;
   const AddSalePage({super.key, this.existing});
@@ -1402,10 +1622,8 @@ class _AddSalePageState extends State<AddSalePage> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    gramsCtrl =
-        TextEditingController(text: e?.grams.toString() ?? '');
-    habbaCtrl =
-        TextEditingController(text: e?.habba.toString() ?? '');
+    gramsCtrl = TextEditingController(text: e?.grams.toString() ?? '');
+    habbaCtrl = TextEditingController(text: e?.habba.toString() ?? '');
     juzCtrl = TextEditingController(text: e?.juz.toString() ?? '');
     purityCtrl = TextEditingController(
         text: (e?.purity ?? 0) == 0 ? '' : e!.purity.toString());
@@ -1461,7 +1679,6 @@ class _AddSalePageState extends State<AddSalePage> {
       _msg('الحبة والجزء من 0 إلى 9');
       return;
     }
-
     Navigator.pop(
       context,
       Sale(
@@ -1482,8 +1699,7 @@ class _AddSalePageState extends State<AddSalePage> {
 
   void _msg(String s) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(s), backgroundColor: Colors.red),
-    );
+        SnackBar(content: Text(s), backgroundColor: Colors.red));
   }
 
   @override
@@ -1504,60 +1720,48 @@ class _AddSalePageState extends State<AddSalePage> {
             onTap: _pickDate,
             child: InputDecorator(
               decoration: _dec(Icons.calendar_today),
-              child: Text('${date.day}/${date.month}/${date.year}'),
+              child: Text(dateStr(date)),
             ),
           ),
           const SizedBox(height: 16),
           _label('الوزن (جرام . حبة . جزء)'),
-          Row(
-            children: [
-              Expanded(
-                  child: _numField(gramsCtrl, 'جرام', Icons.scale)),
-              const SizedBox(width: 6),
-              Expanded(
-                  child: _numField(habbaCtrl, 'حبة', Icons.circle)),
-              const SizedBox(width: 6),
-              Expanded(
-                  child: _numField(
-                      juzCtrl, 'جزء', Icons.circle_outlined)),
-            ],
-          ),
+          Row(children: [
+            Expanded(child: _numField(gramsCtrl, 'جرام', Icons.scale)),
+            const SizedBox(width: 6),
+            Expanded(child: _numField(habbaCtrl, 'حبة', Icons.circle)),
+            const SizedBox(width: 6),
+            Expanded(
+                child: _numField(juzCtrl, 'جزء', Icons.circle_outlined)),
+          ]),
           const SizedBox(height: 16),
           _label('العيار'),
           TextField(
-            controller: purityCtrl,
-            keyboardType: TextInputType.number,
-            decoration: _dec(Icons.diamond),
-          ),
+              controller: purityCtrl,
+              keyboardType: TextInputType.number,
+              decoration: _dec(Icons.diamond)),
           const SizedBox(height: 16),
           _label('مبلغ الشراء (التكلفة)'),
           TextField(
-            controller: buyCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            decoration: _dec(Icons.shopping_cart),
-          ),
+              controller: buyCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec(Icons.shopping_cart)),
           const SizedBox(height: 16),
           _label('مبلغ البيع'),
           TextField(
-            controller: sellCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            decoration: _dec(Icons.sell),
-          ),
+              controller: sellCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: _dec(Icons.sell)),
           const SizedBox(height: 16),
           _label('المشتري'),
-          TextField(
-            controller: buyerCtrl,
-            decoration: _dec(Icons.person),
-          ),
+          TextField(controller: buyerCtrl, decoration: _dec(Icons.person)),
           const SizedBox(height: 16),
           _label('ملاحظات'),
           TextField(
-            controller: notesCtrl,
-            maxLines: 2,
-            decoration: _dec(Icons.notes),
-          ),
+              controller: notesCtrl,
+              maxLines: 2,
+              decoration: _dec(Icons.notes)),
           const SizedBox(height: 28),
           SizedBox(
             height: 52,
@@ -1567,9 +1771,7 @@ class _AddSalePageState extends State<AddSalePage> {
               label: Text(isEdit ? 'حفظ التعديلات' : 'حفظ',
                   style: const TextStyle(fontSize: 18)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: kGold,
-                foregroundColor: Colors.white,
-              ),
+                  backgroundColor: kGold, foregroundColor: Colors.white),
             ),
           ),
         ],
@@ -1604,6 +1806,367 @@ class _AddSalePageState extends State<AddSalePage> {
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+    );
+  }
+}
+
+// ================ Add Expense ================
+class AddExpensePage extends StatefulWidget {
+  final Expense? existing;
+  final List<String> partners;
+  const AddExpensePage({super.key, this.existing, required this.partners});
+  @override
+  State<AddExpensePage> createState() => _AddExpensePageState();
+}
+
+class _AddExpensePageState extends State<AddExpensePage> {
+  late final TextEditingController amountCtrl;
+  late final TextEditingController categoryCtrl;
+  late final TextEditingController notesCtrl;
+  late String target;
+  late DateTime date;
+
+  static const _categories = [
+    'كهرباء', 'إيجار', 'فطور', 'غداء', 'بيت',
+    'صيانة', 'نقل', 'ضيافة', 'رواتب', 'أخرى',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    amountCtrl = TextEditingController(
+        text: e == null ? '' : e.amount.toStringAsFixed(0));
+    categoryCtrl = TextEditingController(text: e?.category ?? '');
+    notesCtrl = TextEditingController(text: e?.notes ?? '');
+    target = e?.target ?? kGeneral;
+    date = e?.date ?? DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    amountCtrl.dispose();
+    categoryCtrl.dispose();
+    notesCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final p = await showDatePicker(
+      context: context,
+      initialDate: date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (p != null) setState(() => date = p);
+  }
+
+  Future<void> _pickCategory() async {
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('اختر الفئة',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: _categories
+                      .map((c) => ListTile(
+                            title: Text(c),
+                            onTap: () => Navigator.pop(ctx, c),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (chosen != null) {
+      setState(() => categoryCtrl.text = chosen);
+    }
+  }
+
+  void _save() {
+    final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
+    if (amt <= 0) {
+      _msg('الرجاء إدخال المبلغ');
+      return;
+    }
+    if (categoryCtrl.text.trim().isEmpty) {
+      _msg('الرجاء اختيار أو كتابة الفئة');
+      return;
+    }
+    Navigator.pop(
+      context,
+      Expense(
+        id: widget.existing?.id ??
+            DateTime.now().microsecondsSinceEpoch.toString(),
+        date: date,
+        amount: amt,
+        category: categoryCtrl.text.trim(),
+        target: target,
+        notes: notesCtrl.text.trim(),
+      ),
+    );
+  }
+
+  void _msg(String s) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s), backgroundColor: Colors.red));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.existing != null;
+    final allTargets = [kGeneral, ...widget.partners];
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEdit ? 'تعديل مصروف' : 'مصروف جديد'),
+        centerTitle: true,
+        backgroundColor: kGold,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _label('التاريخ'),
+          InkWell(
+            onTap: _pickDate,
+            child: InputDecorator(
+              decoration: _dec(Icons.calendar_today),
+              child: Text(dateStr(date)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _label('المبلغ (جنيه)'),
+          TextField(
+            controller: amountCtrl,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            decoration: _dec(Icons.attach_money),
+          ),
+          const SizedBox(height: 16),
+          _label('الفئة'),
+          InkWell(
+            onTap: _pickCategory,
+            child: InputDecorator(
+              decoration: _dec(Icons.category),
+              child: Text(
+                categoryCtrl.text.isEmpty
+                    ? 'اضغط للاختيار أو اكتب يدويًا'
+                    : categoryCtrl.text,
+                style: TextStyle(
+                    color: categoryCtrl.text.isEmpty
+                        ? Colors.grey
+                        : Colors.black87),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: categoryCtrl,
+            decoration: const InputDecoration(
+              hintText: 'أو اكتب فئة جديدة',
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.edit),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _label('المستفيد'),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade400),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Column(
+              children: allTargets.map((t) {
+                final selected = target == t;
+                return RadioListTile<String>(
+                  value: t,
+                  groupValue: target,
+                  onChanged: (v) => setState(() => target = v!),
+                  title: Text(
+                    t,
+                    style: TextStyle(
+                      fontWeight: selected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: selected ? kGold : Colors.black87,
+                    ),
+                  ),
+                  activeColor: kGold,
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _label('ملاحظات'),
+          TextField(
+            controller: notesCtrl,
+            maxLines: 2,
+            decoration: _dec(Icons.notes),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save),
+              label: Text(isEdit ? 'حفظ التعديلات' : 'حفظ',
+                  style: const TextStyle(fontSize: 18)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kGold, foregroundColor: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _label(String s) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(s,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 15)),
+      );
+
+  InputDecoration _dec(IconData icon) => InputDecoration(
+        prefixIcon: Icon(icon),
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Colors.white,
+      );
+}
+
+// ================ Add Partner ================
+class AddPartnerPage extends StatefulWidget {
+  final Partner? existing;
+  const AddPartnerPage({super.key, this.existing});
+  @override
+  State<AddPartnerPage> createState() => _AddPartnerPageState();
+}
+
+class _AddPartnerPageState extends State<AddPartnerPage> {
+  late final TextEditingController nameCtrl;
+  late final TextEditingController capitalCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    nameCtrl = TextEditingController(text: widget.existing?.name ?? '');
+    capitalCtrl = TextEditingController(
+        text: widget.existing == null
+            ? ''
+            : widget.existing!.capital.toStringAsFixed(0));
+  }
+
+  @override
+  void dispose() {
+    nameCtrl.dispose();
+    capitalCtrl.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final name = nameCtrl.text.trim();
+    if (name.isEmpty) {
+      _msg('الرجاء إدخال الاسم');
+      return;
+    }
+    if (name == kGeneral) {
+      _msg('"عام" اسم محجوز، اختر اسمًا آخر');
+      return;
+    }
+    final capital = double.tryParse(capitalCtrl.text.trim()) ?? 0;
+    Navigator.pop(
+      context,
+      Partner(
+        id: widget.existing?.id ??
+            DateTime.now().microsecondsSinceEpoch.toString(),
+        name: name,
+        capital: capital,
+      ),
+    );
+  }
+
+  void _msg(String s) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s), backgroundColor: Colors.red));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.existing != null;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEdit ? 'تعديل شريك' : 'شريك جديد'),
+        centerTitle: true,
+        backgroundColor: kGold,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('اسم الشريك',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(
+              hintText: 'مثال: أحمد',
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.person),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text('رأس المال (جنيه)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: capitalCtrl,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              hintText: 'مثال: 30000',
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.attach_money),
+            ),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save),
+              label: Text(isEdit ? 'حفظ التعديلات' : 'حفظ',
+                  style: const TextStyle(fontSize: 18)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: kGold, foregroundColor: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }
