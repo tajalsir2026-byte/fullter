@@ -1962,6 +1962,186 @@ class _AddExpensePageState extends State<AddExpensePage> {
         children: [
           _label('التاريخ'),
           InkWell(
+// ================ Add Expense (NEW) ================
+String expenseNameOf(Expense e) {
+  if (e.target != kGeneral) return e.target;
+  final n = e.notes;
+  if (n.startsWith('⟦') && n.contains('⟧')) {
+    return n.substring(1, n.indexOf('⟧'));
+  }
+  return '';
+}
+
+String expenseNotesOf(Expense e) {
+  final n = e.notes;
+  if (e.target == kGeneral && n.startsWith('⟦') && n.contains('⟧')) {
+    return n.substring(n.indexOf('⟧') + 1);
+  }
+  return n;
+}
+
+class AddExpensePage extends StatefulWidget {
+  final Expense? existing;
+  final List<String> partners;
+  const AddExpensePage({super.key, this.existing, required this.partners});
+  @override
+  State<AddExpensePage> createState() => _AddExpensePageState();
+}
+
+class _AddExpensePageState extends State<AddExpensePage> {
+  late final TextEditingController amountCtrl;
+  late final TextEditingController categoryCtrl;
+  late final TextEditingController notesCtrl;
+  late final TextEditingController nameCtrl;
+  late bool isPrivate;
+  late DateTime date;
+  List<String> _partners = [];
+
+  static const _categories = [
+    'كهرباء', 'إيجار', 'فطور', 'غداء', 'بيت',
+    'صيانة', 'نقل', 'ضيافة', 'رواتب', 'أخرى',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    amountCtrl = TextEditingController(
+        text: e == null ? '' : e.amount.toStringAsFixed(0));
+    categoryCtrl = TextEditingController(text: e?.category ?? '');
+    notesCtrl =
+        TextEditingController(text: e == null ? '' : expenseNotesOf(e));
+    isPrivate = e != null && e.target != kGeneral;
+    nameCtrl = TextEditingController(text: e == null ? '' : expenseNameOf(e));
+    date = e?.date ?? DateTime.now();
+    _partners = List<String>.from(widget.partners);
+    _loadPartners();
+  }
+
+  Future<void> _loadPartners() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pData = prefs.getString('partners_v1');
+    if (pData != null) {
+      final list = jsonDecode(pData) as List;
+      final names = list.map((e) => Partner.fromJson(e).name).toList();
+      if (mounted) setState(() => _partners = names);
+    }
+  }
+
+  @override
+  void dispose() {
+    amountCtrl.dispose();
+    categoryCtrl.dispose();
+    notesCtrl.dispose();
+    nameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final p = await showDatePicker(
+      context: context,
+      initialDate: date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (p != null) setState(() => date = p);
+  }
+
+  Future<void> _pickCategory() async {
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('اختر الفئة',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: _categories
+                      .map((c) => ListTile(
+                            title: Text(c),
+                            onTap: () => Navigator.pop(ctx, c),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (chosen != null) {
+      setState(() => categoryCtrl.text = chosen);
+    }
+  }
+
+  void _save() {
+    final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
+    if (amt <= 0) {
+      _msg('الرجاء إدخال المبلغ');
+      return;
+    }
+    if (categoryCtrl.text.trim().isEmpty) {
+      _msg('الرجاء اختيار أو كتابة الفئة');
+      return;
+    }
+    final name = nameCtrl.text.trim();
+    if (isPrivate && name.isEmpty) {
+      _msg('الرجاء كتابة الاسم');
+      return;
+    }
+    if (name == kGeneral) {
+      _msg('"عام" اسم محجوز، اكتب اسمًا آخر');
+      return;
+    }
+    final notes = notesCtrl.text.trim();
+    final storedNotes =
+        (!isPrivate && name.isNotEmpty) ? '⟦$name⟧$notes' : notes;
+    Navigator.pop(
+      context,
+      Expense(
+        id: widget.existing?.id ??
+            DateTime.now().microsecondsSinceEpoch.toString(),
+        date: date,
+        amount: amt,
+        category: categoryCtrl.text.trim(),
+        target: isPrivate ? name : kGeneral,
+        notes: storedNotes,
+      ),
+    );
+  }
+
+  void _msg(String s) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s), backgroundColor: Colors.red));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEdit = widget.existing != null;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEdit ? 'تعديل مصروف' : 'مصروف جديد'),
+        centerTitle: true,
+        backgroundColor: kGold,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _label('التاريخ'),
+          InkWell(
             onTap: _pickDate,
             child: InputDecorator(
               decoration: _dec(Icons.calendar_today),
@@ -1987,25 +2167,6 @@ class _AddExpensePageState extends State<AddExpensePage> {
                     ? 'اضغط للاختيار أو اكتب يدويًا'
                     : categoryCtrl.text,
                 style: TextStyle(
-                    color: categoryCtrl.text.isEmpty
-                        ? Colors.grey
-                        : Colors.black87),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          TextField(
-            controller: categoryCtrl,
-            decoration: const InputDecoration(
-              hintText: 'أو اكتب فئة جديدة',
-              border: OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.white,
-              prefixIcon: Icon(Icons.edit),
-            ),
-          ),
-          const SizedBox(height: 20),
-
           // ===== نوع المصروف (جديد) =====
           _label('نوع المصروف'),
           Row(
