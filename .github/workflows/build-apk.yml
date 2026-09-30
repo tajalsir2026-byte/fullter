@@ -1,0 +1,56 @@
+name: بناء APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: جلب الكود
+        uses: actions/checkout@v4
+
+      - name: تهيئة Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: تهيئة Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: تحميل الحزم
+        run: flutter pub get
+
+      - name: فحص الكود
+        run: flutter analyze
+
+      - name: الاختبارات
+        run: flutter test
+
+      - name: بناء APK
+        run: flutter build apk --release
+
+      - name: رفع الملف كمرفق
+        uses: actions/upload-artifact@v4
+        with:
+          name: gold-accounts-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: نشر إصدار فيه الـ APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v4.0.0-${{ github.run_number }}
+          name: حسابات الذهب v4.0.0 (بناء ${{ github.run_number }})
+          body: |
+            حمّل الملف `app-release.apk` من الأسفل وثبّته على التلفون.
+            ملاحظة: مُوقّع بمفتاح تجريبي (debug) — للتجربة فقط وليس للنشر على Google Play.
+          files: build/app/outputs/flutter-apk/app-release.apk
