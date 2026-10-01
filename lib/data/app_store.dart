@@ -337,8 +337,11 @@ class AppStore extends ChangeNotifier {
   double get totalCapital =>
       partners.fold<double>(0, (double s, Partner p) => s + p.capital);
 
-  double sharePctOf(Partner p) =>
-      totalCapital == 0 ? 0 : p.capital / totalCapital;
+  /// نسبة الربح التي يحددها المستخدم يدوياً، ولا علاقة لها برأس المال.
+  double sharePctOf(Partner p) => p.profitPercent / 100;
+
+  double get totalProfitPercent =>
+      partners.fold<double>(0, (double s, Partner p) => s + p.profitPercent);
 
   double profitShareOf(Partner p) => sharePctOf(p) * netProfit;
 
