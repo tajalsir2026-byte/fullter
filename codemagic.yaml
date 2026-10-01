@@ -2,7 +2,7 @@ workflows:
   android-workflow:
     name: Android Build (APK + AAB)
     # لينكس أرخص وأسرع كثيراً من الماك لبناء الأندرويد
-    instance_type: linux_x2
+    instance_type: linux
     max_build_duration: 45
     environment:
       flutter: stable
