@@ -338,6 +338,7 @@ class Partner {
   final String id;
   final String name;
   final double capital; // رأس المال المدخل
+  final double profitPercent; // نسبة الربح اليدوية (مستقلة عن رأس المال)
   final String phone;
   final String notes;
   final DateTime updatedAt;
@@ -346,6 +347,7 @@ class Partner {
     required this.id,
     required this.name,
     required this.capital,
+    this.profitPercent = 0,
     this.phone = '',
     this.notes = '',
     DateTime? updatedAt,
@@ -355,6 +357,7 @@ class Partner {
         'id': id,
         'name': name,
         'capital': capital,
+        'profitPercent': profitPercent,
         'phone': phone,
         'notes': notes,
         'updatedAt': updatedAt.toIso8601String(),
@@ -364,6 +367,7 @@ class Partner {
         id: _asString(j['id'], newId()),
         name: _asString(j['name']),
         capital: _asDouble(j['capital']),
+        profitPercent: _asDouble(j['profitPercent']),
         phone: _asString(j['phone']),
         notes: _asString(j['notes']),
         updatedAt: _asUpdatedAt(j),
@@ -372,6 +376,7 @@ class Partner {
   Partner copyWith({
     String? name,
     double? capital,
+    double? profitPercent,
     String? phone,
     String? notes,
     DateTime? updatedAt,
@@ -380,6 +385,7 @@ class Partner {
         id: id,
         name: name ?? this.name,
         capital: capital ?? this.capital,
+        profitPercent: profitPercent ?? this.profitPercent,
         phone: phone ?? this.phone,
         notes: notes ?? this.notes,
         updatedAt: updatedAt,
