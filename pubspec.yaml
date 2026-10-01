@@ -1,7 +1,7 @@
 name: gold_accounts
 description: "تطبيق محاسبة لمحلات الذهب: مشتريات، مبيعات، منصرفات، شركاء، وأرباح."
 publish_to: 'none'
-version: 4.0.0+4
+version: 4.1.0+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -22,6 +22,9 @@ dependencies:
 
   # مسار مجلد النسخ الاحتياطية
   path_provider: '>=2.0.0 <3.0.0'
+
+  # طلبات HTTP للمزامنة السحابية (Supabase)
+  http: '>=1.0.0 <2.0.0'
 
 dev_dependencies:
   flutter_test:

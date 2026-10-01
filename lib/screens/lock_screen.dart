@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../core/format.dart';
 import '../data/app_store.dart';
+import '../data/cloud_sync.dart';
 import '../data/security.dart';
 import 'home_shell.dart';
 
@@ -43,7 +44,12 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
   Future<void> _init() async {
     _hasPassword = await Security.instance.hasPassword();
     await AppStore.instance.load();
+    await CloudSync.instance.init();
     if (mounted) setState(() => _loading = false);
+    // مزامنة صامتة عند بدء التشغيل (تفشل بهدوء لو مافي نت)
+    if (CloudSync.instance.signedIn) {
+      CloudSync.instance.sync(silent: true);
+    }
   }
 
   @override
@@ -54,6 +60,9 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     } else if (state == AppLifecycleState.resumed) {
       final DateTime? p = _pausedAt;
       _pausedAt = null;
+      if (CloudSync.instance.signedIn) {
+        CloudSync.instance.sync(silent: true);
+      }
       if (p == null || !_unlocked) return;
       Security.instance.lockSeconds().then((int limit) {
         if (DateTime.now().difference(p).inSeconds >= limit && mounted) {

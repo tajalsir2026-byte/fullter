@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants.dart';
 import '../models/models.dart';
+import 'sync_merge.dart';
 
 /// ============================================================
 ///  مخزن البيانات الموحّد
@@ -23,6 +24,12 @@ class AppStore extends ChangeNotifier {
   List<Expense> expenses = <Expense>[];
   List<Partner> partners = <Partner>[];
 
+  /// علامات الحذف (معرّف السجل -> وقت الحذف) لتنتقل عمليات الحذف للأجهزة الأخرى
+  Map<String, String> deleted = <String, String>{};
+
+  /// يُستدعى بعد كل تغيير محلي (تستخدمه المزامنة السحابية)
+  void Function()? syncHook;
+
   // ---------------------------------------------------------
   // التحميل والحفظ
   // ---------------------------------------------------------
@@ -36,6 +43,7 @@ class AppStore extends ChangeNotifier {
         prefs.getString(StoreKeys.expenses), (Map<String, dynamic> j) => Expense.fromJson(j));
     partners = _decode<Partner>(
         prefs.getString(StoreKeys.partners), (Map<String, dynamic> j) => Partner.fromJson(j));
+    deleted = _decodeDeleted(prefs.getString(StoreKeys.deleted));
     _sortAll();
     loaded = true;
     notifyListeners();
@@ -53,6 +61,24 @@ class AppStore extends ChangeNotifier {
       debugPrint(lastError);
       return <T>[];
     }
+  }
+
+  Map<String, String> _decodeDeleted(String? raw) {
+    if (raw == null || raw.isEmpty) return <String, String>{};
+    try {
+      final Map<String, dynamic> m =
+          Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      return m.map((String k, dynamic v) =>
+          MapEntry<String, String>(k, v.toString()));
+    } catch (_) {
+      return <String, String>{};
+    }
+  }
+
+  /// يسجّل أن سجلاً حُذف، حتى ينتقل الحذف للأجهزة الأخرى
+  void _markDeleted(String id) {
+    deleted[id] = DateTime.now().toUtc().toIso8601String();
+    deleted = pruneTombstones(deleted);
   }
 
   void _sortAll() {
@@ -74,6 +100,7 @@ class AppStore extends ChangeNotifier {
           jsonEncode(expenses.map((Expense e) => e.toJson()).toList()));
       await prefs.setString(StoreKeys.partners,
           jsonEncode(partners.map((Partner e) => e.toJson()).toList()));
+      await prefs.setString(StoreKeys.deleted, jsonEncode(deleted));
       lastError = null;
       return true;
     } catch (e) {
@@ -86,7 +113,9 @@ class AppStore extends ChangeNotifier {
   Future<bool> _commit() async {
     _sortAll();
     notifyListeners();
-    return _persist();
+    final bool ok = await _persist();
+    syncHook?.call();
+    return ok;
   }
 
   // ---------------------------------------------------------
@@ -105,6 +134,7 @@ class AppStore extends ChangeNotifier {
 
   Future<bool> deletePurchase(String id) async {
     purchases.removeWhere((Purchase x) => x.id == id);
+    _markDeleted(id);
     // فك ارتباط المبيعات المرتبطة بهذا المشترى بدل حذفها
     for (int i = 0; i < sales.length; i++) {
       if (sales[i].purchaseId == id) {
@@ -156,6 +186,7 @@ class AppStore extends ChangeNotifier {
 
   Future<bool> deleteSale(String id) async {
     sales.removeWhere((Sale x) => x.id == id);
+    _markDeleted(id);
     return _commit();
   }
 
@@ -175,6 +206,7 @@ class AppStore extends ChangeNotifier {
 
   Future<bool> deleteExpense(String id) async {
     expenses.removeWhere((Expense x) => x.id == id);
+    _markDeleted(id);
     return _commit();
   }
 
@@ -218,6 +250,7 @@ class AppStore extends ChangeNotifier {
     if (i < 0) return false;
     final String name = partners[i].name;
     partners.removeAt(i);
+    _markDeleted(id);
     // المصروفات الخاصة به تتحوّل إلى "عام" حتى لا تضيع من الحسابات
     for (int k = 0; k < expenses.length; k++) {
       if (expenses[k].target == name) {
@@ -380,12 +413,45 @@ class AppStore extends ChangeNotifier {
     }
   }
 
+  // ============================================================
+  //  حمولة المزامنة
+  // ============================================================
+  Map<String, dynamic> exportPayload() => <String, dynamic>{
+        'purchases': purchases.map((Purchase e) => e.toJson()).toList(),
+        'sales': sales.map((Sale e) => e.toJson()).toList(),
+        'expenses': expenses.map((Expense e) => e.toJson()).toList(),
+        'partners': partners.map((Partner e) => e.toJson()).toList(),
+        'deleted': deleted,
+      };
+
+  /// يطبّق حمولة قادمة من المزامنة على البيانات المحلية
+  Future<bool> applyPayload(Map<String, dynamic> payload,
+      {bool notify = true}) async {
+    List<T> read<T>(String key, T Function(Map<String, dynamic>) f) =>
+        (payload[key] as List<dynamic>? ?? <dynamic>[])
+            .map((dynamic e) => f(Map<String, dynamic>.from(e as Map)))
+            .toList();
+
+    purchases = read<Purchase>('purchases', Purchase.fromJson);
+    sales = read<Sale>('sales', Sale.fromJson);
+    expenses = read<Expense>('expenses', Expense.fromJson);
+    partners = read<Partner>('partners', Partner.fromJson);
+    if (payload['deleted'] is Map) {
+      deleted = Map<String, dynamic>.from(payload['deleted'] as Map).map(
+          (String k, dynamic v) => MapEntry<String, String>(k, v.toString()));
+    }
+    _sortAll();
+    if (notify) notifyListeners();
+    return _persist();
+  }
+
   /// حذف كل البيانات (لا يحذف كلمة السر)
   Future<bool> wipeAll() async {
     purchases = <Purchase>[];
     sales = <Sale>[];
     expenses = <Expense>[];
     partners = <Partner>[];
+    deleted = <String, String>{};
     return _commit();
   }
 }

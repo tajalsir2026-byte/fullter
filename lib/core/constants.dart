@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// لتغيير اسم التطبيق الظاهر غيّر kAppName هنا
 /// و android/app/src/main/AndroidManifest.xml (android:label)
 const String kAppName = 'حسابات الذهب';
-const String kAppVersion = '4.0.0';
+const String kAppVersion = '4.1.0';
 const String kCurrency = 'ج.س';
 
 /// اسم "المصروف العام" (غير مخصوم من شريك معيّن)
@@ -36,6 +36,15 @@ class StoreKeys {
   static const String lockSeconds = 'lock_after_seconds';
   static const String themeMode = 'theme_mode';
   static const String lastBackup = 'last_backup_at';
+
+  // ===== المزامنة السحابية =====
+  /// علامات الحذف (id -> وقت الحذف) حتى ينتقل الحذف للأجهزة الأخرى
+  static const String deleted = 'deleted_v1';
+  static const String cloudEmail = 'cloud_email';
+  static const String cloudUserId = 'cloud_user_id';
+  static const String cloudAccessToken = 'cloud_access_token';
+  static const String cloudRefreshToken = 'cloud_refresh_token';
+  static const String cloudLastSync = 'cloud_last_sync';
 }
 
 /// فئات المصروفات الجاهزة (يمكن للمستخدم كتابة فئة جديدة)

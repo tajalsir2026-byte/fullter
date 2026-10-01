@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- مطلوب للمزامنة السحابية فقط؛ التطبيق يعمل كاملاً بدونها -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="حسابات الذهب"
         android:name="${applicationName}"

@@ -27,6 +27,15 @@ DateTime _asDate(dynamic v) =>
 
 String newId() => DateTime.now().microsecondsSinceEpoch.toString();
 
+/// وقت آخر تعديل: لو السجل قديم (قبل المزامنة) نستخدم تاريخ العملية،
+/// وإن لم يوجد نستخدم أقدم وقت ممكن حتى لا يطغى القديم على الجديد عند الدمج
+DateTime _asUpdatedAt(Map<String, dynamic> j) {
+  final dynamic v = j['updatedAt'] ?? j['date'];
+  if (v == null) return DateTime.fromMillisecondsSinceEpoch(0);
+  return DateTime.tryParse(v.toString()) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+}
+
 /// يقرأ الوزن سواء كان مخزّناً بالنظام الجديد (units)
 /// أو بالنظام القديم (grams/habba/juz)
 int _readUnits(Map<String, dynamic> j) {
@@ -80,6 +89,9 @@ class Purchase {
   final String notes;
   final List<Payment> payments;
 
+  /// وقت آخر تعديل — تستخدمه المزامنة لمعرفة أي نسخة أحدث
+  final DateTime updatedAt;
+
   Purchase({
     required this.id,
     required this.date,
@@ -91,7 +103,9 @@ class Purchase {
     this.bankAccount = '',
     this.notes = '',
     List<Payment>? payments,
-  }) : payments = payments ?? <Payment>[];
+    DateTime? updatedAt,
+  })  : payments = payments ?? <Payment>[],
+        updatedAt = updatedAt ?? DateTime.now();
 
   int get grams => units ~/ kUnitsPerGram;
   int get habba => (units % kUnitsPerGram) ~/ kUnitsPerHabba;
@@ -121,6 +135,7 @@ class Purchase {
         'bankAccount': bankAccount,
         'notes': notes,
         'payments': payments.map((Payment p) => p.toJson()).toList(),
+        'updatedAt': updatedAt.toIso8601String(),
       };
 
   factory Purchase.fromJson(Map<String, dynamic> j) => Purchase(
@@ -136,6 +151,7 @@ class Purchase {
         payments: (j['payments'] as List<dynamic>? ?? <dynamic>[])
             .map((dynamic e) => Payment.fromJson(e as Map<String, dynamic>))
             .toList(),
+        updatedAt: _asUpdatedAt(j),
       );
 
   Purchase copyWith({
@@ -148,6 +164,7 @@ class Purchase {
     String? bankAccount,
     String? notes,
     List<Payment>? payments,
+    DateTime? updatedAt,
   }) =>
       Purchase(
         id: id,
@@ -160,6 +177,7 @@ class Purchase {
         bankAccount: bankAccount ?? this.bankAccount,
         notes: notes ?? this.notes,
         payments: payments ?? this.payments,
+        updatedAt: updatedAt,
       );
 }
 
@@ -179,6 +197,8 @@ class Sale {
   /// ربط اختياري بمشترى معيّن (لخصم المخزون وحساب التكلفة تلقائياً)
   final String? purchaseId;
 
+  final DateTime updatedAt;
+
   Sale({
     required this.id,
     required this.date,
@@ -189,7 +209,8 @@ class Sale {
     this.buyer = '',
     this.notes = '',
     this.purchaseId,
-  });
+    DateTime? updatedAt,
+  }) : updatedAt = updatedAt ?? DateTime.now();
 
   int get grams => units ~/ kUnitsPerGram;
   int get habba => (units % kUnitsPerGram) ~/ kUnitsPerHabba;
@@ -210,6 +231,7 @@ class Sale {
         'buyer': buyer,
         'notes': notes,
         'purchaseId': purchaseId,
+        'updatedAt': updatedAt.toIso8601String(),
       };
 
   factory Sale.fromJson(Map<String, dynamic> j) => Sale(
@@ -222,6 +244,7 @@ class Sale {
         buyer: _asString(j['buyer']),
         notes: _asString(j['notes']),
         purchaseId: j['purchaseId'] == null ? null : _asString(j['purchaseId']),
+        updatedAt: _asUpdatedAt(j),
       );
 }
 
@@ -236,6 +259,7 @@ class Expense {
   final String target; // 'عام' أو اسم شريك
   final String name; // اسم صاحب/مستلم المصروف (حقل صريح الآن)
   final String notes;
+  final DateTime updatedAt;
 
   Expense({
     required this.id,
@@ -245,7 +269,8 @@ class Expense {
     required this.target,
     this.name = '',
     this.notes = '',
-  });
+    DateTime? updatedAt,
+  }) : updatedAt = updatedAt ?? DateTime.now();
 
   bool get isGeneral => target == kGeneral;
 
@@ -257,6 +282,7 @@ class Expense {
         'target': target,
         'name': name,
         'notes': notes,
+        'updatedAt': updatedAt.toIso8601String(),
       };
 
   factory Expense.fromJson(Map<String, dynamic> j) {
@@ -280,6 +306,7 @@ class Expense {
       target: target.isEmpty ? kGeneral : target,
       name: name,
       notes: notes,
+      updatedAt: _asUpdatedAt(j),
     );
   }
 
@@ -290,6 +317,7 @@ class Expense {
     String? target,
     String? name,
     String? notes,
+    DateTime? updatedAt,
   }) =>
       Expense(
         id: id,
@@ -299,6 +327,7 @@ class Expense {
         target: target ?? this.target,
         name: name ?? this.name,
         notes: notes ?? this.notes,
+        updatedAt: updatedAt,
       );
 }
 
@@ -311,6 +340,7 @@ class Partner {
   final double capital; // رأس المال المدخل
   final String phone;
   final String notes;
+  final DateTime updatedAt;
 
   Partner({
     required this.id,
@@ -318,7 +348,8 @@ class Partner {
     required this.capital,
     this.phone = '',
     this.notes = '',
-  });
+    DateTime? updatedAt,
+  }) : updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'id': id,
@@ -326,6 +357,7 @@ class Partner {
         'capital': capital,
         'phone': phone,
         'notes': notes,
+        'updatedAt': updatedAt.toIso8601String(),
       };
 
   factory Partner.fromJson(Map<String, dynamic> j) => Partner(
@@ -334,6 +366,7 @@ class Partner {
         capital: _asDouble(j['capital']),
         phone: _asString(j['phone']),
         notes: _asString(j['notes']),
+        updatedAt: _asUpdatedAt(j),
       );
 
   Partner copyWith({
@@ -341,6 +374,7 @@ class Partner {
     double? capital,
     String? phone,
     String? notes,
+    DateTime? updatedAt,
   }) =>
       Partner(
         id: id,
@@ -348,5 +382,6 @@ class Partner {
         capital: capital ?? this.capital,
         phone: phone ?? this.phone,
         notes: notes ?? this.notes,
+        updatedAt: updatedAt,
       );
 }

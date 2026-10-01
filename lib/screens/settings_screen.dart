@@ -9,6 +9,7 @@ import '../core/format.dart';
 import '../data/app_store.dart';
 import '../data/backup.dart';
 import '../data/security.dart';
+import '../widgets/cloud_card.dart';
 import '../widgets/form_fields.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -374,6 +375,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+
+            _section('المزامنة بين الأجهزة'),
+            const CloudSyncCard(),
 
             _section('النسخ الاحتياطي'),
             Container(
