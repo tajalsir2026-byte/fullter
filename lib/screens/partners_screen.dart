@@ -28,13 +28,13 @@ class _PartnersScreenState extends State<PartnersScreen> {
   Future<void> _delete(Partner p) async {
     final bool ok = await confirmDialog(
       context,
-      title: 'حذف الشريك',
-      message: 'حذف "${p.name}"؟\n'
-          'مصروفاته الخاصة ستتحوّل إلى "عام" ولن تُحذف.',
+      title: 'ط­ط°ظپ ط§ظ„ط´ط±ظٹظƒ',
+      message: 'ط­ط°ظپ "${p.name}"طں\n'
+          'ظ…طµط±ظˆظپط§طھظ‡ ط§ظ„ط®ط§طµط© ط³طھطھط­ظˆظ‘ظ„ ط¥ظ„ظ‰ "ط¹ط§ظ…" ظˆظ„ظ† طھظڈط­ط°ظپ.',
     );
     if (!ok) return;
     final bool saved = await store.deletePartner(p.id);
-    if (mounted) showMsg(context, saved ? 'تم الحذف' : 'فشل الحفظ', error: !saved);
+    if (mounted) showMsg(context, saved ? 'طھظ… ط§ظ„ط­ط°ظپ' : 'ظپط´ظ„ ط§ظ„ط­ظپط¸', error: !saved);
   }
 
   @override
@@ -45,7 +45,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
           children: <Widget>[
-            // ملخص
+            // ظ…ظ„ط®طµ
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -55,7 +55,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
               ),
               child: Column(
                 children: <Widget>[
-                  const Text('إجمالي رأس المال',
+                  const Text('ط¥ط¬ظ…ط§ظ„ظٹ ط±ط£ط³ ط§ظ„ظ…ط§ظ„',
                       style: TextStyle(fontSize: 13, color: Colors.black54)),
                   const SizedBox(height: 4),
                   FittedBox(
@@ -71,11 +71,13 @@ class _PartnersScreenState extends State<PartnersScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: <Widget>[
-                      _mini('الربح الصافي', fmtNum(store.netProfit),
+                      _mini('ط§ظ„ط±ط¨ط­ ط§ظ„طµط§ظپظٹ', fmtNum(store.netProfit),
                           store.netProfit >= 0 ? kGreen : kRed),
-                      _mini('منصرفات خاصة', fmtNum(store.privateExpenses),
+                      _mini('ط§ظ„ظ…ظ†طµط±ظپط§طھ ط§ظ„ط¹ط§ظ…ط©', fmtNum(store.generalExpenses),
+                          kDarkGold),
+                      _mini('ظ…ظ†طµط±ظپط§طھ ط®ط§طµط©', fmtNum(store.privateExpenses),
                           kBlue),
-                      _mini('مجموع نسب الربح', '${store.totalProfitPercent.toStringAsFixed(1)}%',
+                      _mini('ظ…ط¬ظ…ظˆط¹ ظ†ط³ط¨ ط§ظ„ط±ط¨ط­', '${store.totalProfitPercent.toStringAsFixed(1)}%',
                           store.totalProfitPercent == 100 ? kGreen : kRed),
                     ],
                   ),
@@ -86,7 +88,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'تنبيه: مجموع نسب الأرباح ${store.totalProfitPercent.toStringAsFixed(1)}% — يجب ضبطها إلى 100%',
+                  'طھظ†ط¨ظٹظ‡: ظ…ط¬ظ…ظˆط¹ ظ†ط³ط¨ ط§ظ„ط£ط±ط¨ط§ط­ ${store.totalProfitPercent.toStringAsFixed(1)}% â€” ظٹط¬ط¨ ط¶ط¨ط·ظ‡ط§ ط¥ظ„ظ‰ 100%',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: kRed, fontSize: 12),
                 ),
@@ -96,7 +98,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
             if (store.partners.isEmpty)
               const EmptyHint(
                 icon: Icons.groups,
-                text: 'لا يوجد شركاء بعد\nاضغط "شريك جديد" للإضافة',
+                text: 'ظ„ط§ ظٹظˆط¬ط¯ ط´ط±ظƒط§ط، ط¨ط¹ط¯\nط§ط¶ط؛ط· "ط´ط±ظٹظƒ ط¬ط¯ظٹط¯" ظ„ظ„ط¥ط¶ط§ظپط©',
               )
             else
               ...store.partners.map(_partnerCard),
@@ -106,7 +108,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6),
                 child: Text(
-                  'صافي المستحق = رأس المال + حصته من الربح اليدوية − مصروفاته الخاصة',
+                  'طµط§ظپظٹ ط§ظ„ظ…ط³طھط­ظ‚ = ط±ط£ط³ ط§ظ„ظ…ط§ظ„ + ط­طµطھظ‡ ظ…ظ† ط§ظ„ط±ط¨ط­ ط§ظ„ظٹط¯ظˆظٹط© âˆ’ ظ…طµط±ظˆظپط§طھظ‡ ط§ظ„ط®ط§طµط©',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey, fontSize: 11.5),
                 ),
@@ -118,15 +120,21 @@ class _PartnersScreenState extends State<PartnersScreen> {
     );
   }
 
-  Widget _mini(String label, String value, Color color) => Column(
-        children: <Widget>[
-          Text(label,
-              style: const TextStyle(fontSize: 11, color: Colors.black54)),
-          const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold, color: color)),
-        ],
+  Widget _mini(String label, String value, Color color) => Flexible(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(label,
+                  style: const TextStyle(fontSize: 11, color: Colors.black54)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.bold, color: color)),
+            ],
+          ),
+        ),
       );
 
   Widget _partnerCard(Partner p) {
@@ -152,7 +160,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
               style: const TextStyle(
                   fontWeight: FontWeight.bold, fontSize: 16)),
           subtitle: Text(
-            'رأس المال: ${fmtNum(p.capital)}  •  ربح: ${pct.toStringAsFixed(1)}%',
+            'ط±ط£ط³ ط§ظ„ظ…ط§ظ„: ${fmtNum(p.capital)}  â€¢  ط±ط¨ط­: ${pct.toStringAsFixed(1)}%',
             style: const TextStyle(fontSize: 12.5),
           ),
           trailing: Column(
@@ -164,7 +172,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                       color: net >= 0 ? kGreen : kRed)),
-              const Text('صافي المستحق',
+              const Text('طµط§ظپظٹ ط§ظ„ظ…ط³طھط­ظ‚',
                   style: TextStyle(fontSize: 9.5, color: Colors.grey)),
             ],
           ),
@@ -173,17 +181,17 @@ class _PartnersScreenState extends State<PartnersScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               child: Column(
                 children: <Widget>[
-                  _row('رأس المال', fmtMoney(p.capital)),
-                  _row('نسبة الربح اليدوية', '${pct.toStringAsFixed(2)}%'),
-                  _row('حصته من الربح', fmtMoney(profitShare),
+                  _row('ط±ط£ط³ ط§ظ„ظ…ط§ظ„', fmtMoney(p.capital)),
+                  _row('ظ†ط³ط¨ط© ط§ظ„ط±ط¨ط­ ط§ظ„ظٹط¯ظˆظٹط©', '${pct.toStringAsFixed(2)}%'),
+                  _row('ط­طµطھظ‡ ظ…ظ† ط§ظ„ط±ط¨ط­', fmtMoney(profitShare),
                       color: profitShare >= 0 ? kGreen : kRed),
-                  _row('مصروفاته الخاصة', '- ${fmtMoney(spent)}',
+                  _row('ظ…طµط±ظˆظپط§طھظ‡ ط§ظ„ط®ط§طµط©', '- ${fmtMoney(spent)}',
                       color: spent > 0 ? kRed : null),
                   const Divider(),
-                  _row('صافي المستحق', fmtMoney(net),
+                  _row('طµط§ظپظٹ ط§ظ„ظ…ط³طھط­ظ‚', fmtMoney(net),
                       color: net >= 0 ? kGreen : kRed, bold: true),
-                  if (p.phone.isNotEmpty) _row('الهاتف', p.phone),
-                  if (p.notes.isNotEmpty) _row('ملاحظات', p.notes),
+                  if (p.phone.isNotEmpty) _row('ط§ظ„ظ‡ط§طھظپ', p.phone),
+                  if (p.notes.isNotEmpty) _row('ظ…ظ„ط§ط­ط¸ط§طھ', p.notes),
                   const SizedBox(height: 8),
                   Row(
                     children: <Widget>[
@@ -191,7 +199,7 @@ class _PartnersScreenState extends State<PartnersScreen> {
                         child: OutlinedButton.icon(
                           onPressed: () => _openForm(p),
                           icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('تعديل'),
+                          label: const Text('طھط¹ط¯ظٹظ„'),
                         ),
                       ),
                       const SizedBox(width: 8),
