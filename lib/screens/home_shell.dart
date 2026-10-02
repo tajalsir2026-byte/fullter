@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 
 import '../core/constants.dart';
 import 'calculator_screen.dart';
+import 'gold_price_screen.dart';
 import 'dashboard_screen.dart';
 import 'expenses_screen.dart';
 import 'forms/expense_form.dart';
@@ -95,6 +95,15 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ),
         actions: <Widget>[
+          IconButton(
+            tooltip: 'السعر العالمي للذهب',
+            icon: const Icon(Icons.currency_exchange),
+            onPressed: () => Navigator.push<void>(
+              context,
+              MaterialPageRoute<void>(
+                  builder: (_) => const GoldPriceScreen()),
+            ),
+          ),
           IconButton(
             tooltip: 'الآلة الحاسبة',
             icon: const Icon(Icons.calculate),
